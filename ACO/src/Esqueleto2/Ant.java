@@ -37,7 +37,7 @@ public class Ant implements Cloneable{
 
     private int [][] distance;// Matriz de distancias que va a ser para nosotros el coste
     
-    private int [][] carga;// Matriz de distancias
+    private int [][] load;// Matriz de distancias
 
     private double[][] delta; // Matriz de cambio de feromonas
 
@@ -45,7 +45,7 @@ public class Ant implements Cloneable{
 
     private double beta;
     
-    private int umbral; //numero de hormigas maximo que soporta un enlace actua como la carga del enlace
+//    private int umbral; //capacidad máxima de tráfico
 
     private int cityNum;// Número de ciudades
 
@@ -109,26 +109,18 @@ public class Ant implements Cloneable{
      * 
      * 
      */
-    public void selectNextCity(double[][] pheromone,int origen,int destino,Graph<Integer,DefaultEdge> topologia,int idhormiga) {
+    public void selectNextCity(double[][] pheromone) {
         double[] p = new double[this.cityNum];// Probabilidad de transición
         double sum = 0.d;// Denominador de probabilidad de transición
 
         
-        
-		YenKShortestPath shortestpath= new YenKShortestPath<>(topologia);
-        
-		List<GraphPath<Integer,DefaultEdge>> rutas = shortestpath.getPaths(origen, destino, idhormiga);
-		
-		GraphPath<Integer,DefaultEdge> graph =  rutas.get(idhormiga);//Ruta que corresponde a la hormiga en funcion de su identificador(para que las rutas sean distintas)
-		
-		List<Integer>vertex =graph.getVertexList();
 	
-        if (this.allowedCities.contains(vertex.get(this.currentCity+1))) {// Permite ir de todas a todas las ciudades
+     
        
         	for (Integer city: this.allowedCities) {  
         		if(distance[this.currentCity][city]!=9999) {//Calculo del sumatorio para ciudades adyacentes(modificacion)
              sum += Math.pow(pheromone[this.currentCity][city.intValue()],
-                    this.alpha)*Math.pow(1.d/this.distance[this.currentCity][city.intValue()], this.beta)*Math.pow(1.d/this.carga[this.currentCity][city.intValue()], this.beta);
+                    this.alpha)*Math.pow(1.d/this.distance[this.currentCity][city.intValue()], this.beta)*Math.pow(1.d/this.load[this.currentCity][city.intValue()], this.beta);
         		}
         		}
         	
@@ -137,7 +129,7 @@ public class Ant implements Cloneable{
          //Cambiar por formula de wuham formula 1 y quitamos los retardos. Me quedo con el siguiente nodo de k shortest path
         //Tendremos que cargar de feromonas el camino con menor MLU (menor saturacion de carga)
         
-        }
+        
 	
         
 //      double s = 0.d;
@@ -146,7 +138,7 @@ public class Ant implements Cloneable{
             for (Integer city : this.allowedCities) {
                 if(i == city.intValue() && distance[this.currentCity][city]!=9999) {// comprobar que es adyacente de la ciudad acutal(modificacion)
                      p[i] = (double) ((Math.pow(pheromone[this.currentCity][i], 
-                             this.alpha)*Math.pow(1.d/this.distance[this.currentCity][i], this.beta)*Math.pow(1.d/this.carga[this.currentCity][i], this.beta))/sum);
+                             this.alpha)*Math.pow(1.d/this.distance[this.currentCity][i], this.beta)*Math.pow(1.d/this.load[this.currentCity][i], this.beta))/sum);
                      flag = true;
                      break;
                 }

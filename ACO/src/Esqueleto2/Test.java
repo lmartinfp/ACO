@@ -16,8 +16,16 @@ public class Test {
                 { 1, 0, 1, 0, 1},
                 { 0, 1, 1, 1, 0},
                   };
+             int capacity[][] = new int[][] { 
+               		  { 0, 100, 100, 100, 0},
+                      { 100, 0, 100, 0, 100},
+                      { 100, 100, 0, 100, 100},
+                      { 100, 0, 100, 0, 100},
+                      { 0, 100, 100, 100, 0},
+                        };      
                   
-        ACO aco = new ACO(traffic,adjacency,6, 5, 2000, 1.d, 5.d, 0.5d);
+        //Las tres matrices se utilizaran para el calculo de la matriz de carga, junto con la de distancias.          
+        ACO aco = new ACO(traffic,adjacency,capacity,6, 5, 2000, 1.d, 5.d, 0.5d);
         aco.init("cities2.txt");
         
         

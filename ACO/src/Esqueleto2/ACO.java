@@ -33,6 +33,7 @@ public class ACO {
     private int[][] distance; // Matriz de distancias (coste)
     private int[][] load; // carga de trafico que tiene un nodo en un momento dado
     private int[][] traffic; 
+    private int [][] capacity;
     private int bestLength; // Longitud óptima
     private int[] bestTour; // Mejor camino
     // Tres parámetros
@@ -51,9 +52,10 @@ public class ACO {
     /*
      * Constructor parametrizado
      */
-    public ACO(int [][] traffic,int[][]adjacency ,int antNum, int cityNum, int mAX_GEN, double alpha, double beta, double rho) {
+    public ACO(int [][] traffic,int[][]adjacency ,int[][]capacity,int antNum, int cityNum, int mAX_GEN, double alpha, double beta, double rho) {
         this.traffic=traffic;
         this.adjacency =adjacency;
+        this.capacity=capacity;
     	this.antNum = antNum;
         this.cityNum = cityNum;
         this.MAX_GEN = mAX_GEN;
@@ -104,7 +106,9 @@ public class ACO {
             this.distance[this.cityNum-1][this.cityNum-1] = 0;
             
             //Las aristas que no están conectadas las ponemos a 0
-            finalizarMatrizCostes();          
+            finalizarMatrizCostes();
+            //Completamos la matriz de carga con el porcentaje de trafico y capacidad de cada enlace
+            completarMatrizCarga();
             
      
             
@@ -131,7 +135,18 @@ public class ACO {
         }
     }
 
-    private void finalizarMatrizCostes() {
+    private void completarMatrizCarga() {
+    	for (int i = 0; i < this.adjacency.length; i++) {
+			for (int j = 0; j < this.adjacency.length; j++) {
+				if (this.adjacency[i][j]==1) {//No tenemos arista entre estos dos nodos
+					this.load[i][j]=(this.traffic[i][j]*100)/this.capacity[i][j];
+				}
+			}
+		}
+		
+	}
+
+	private void finalizarMatrizCostes() {
 		for (int i = 0; i < this.adjacency.length; i++) {
 			for (int j = 0; j < this.adjacency.length; j++) {
 				if (this.adjacency[i][j]==0) {//No tenemos arista entre estos dos nodos
@@ -165,11 +180,11 @@ public class ACO {
      */
     public void solve(int origen, int destino) {
     	
-    	calculateKshortestPath(origen,destino);
+    //	calculateKshortestPath(origen,destino);
    
-  /*  	
+   	
     	
-     //   for (int g = 0; g < this.MAX_GEN; g++) {
+        for (int g = 0; g < this.MAX_GEN; g++) {
         	
             // El proceso de movimiento de cada hormiga
  
@@ -178,7 +193,7 @@ public class ACO {
         //que indiquemos por parámetros
             for (int i = 0; i < this.antNum; i++) {
             	
-                    this.ants[i].selectNextCity(this.pheromone,origen,destino,topologia,i);//Construye solucion
+                    this.ants[i].selectNextCity(this.pheromone);//Construye solucion
                 
                 this.ants[i].getTabu().add(this.ants[i].getFirstCity());
 //              if(this.ants[i].getTabu().size() < 49) {
@@ -201,7 +216,7 @@ public class ACO {
                 }
             }
             
-            
+         
             
             // Actualizar feromonas
             this.updatePheromone();// Sistema de hormigas-ciclo
@@ -209,10 +224,11 @@ public class ACO {
             for(int i = 0;i < this.antNum;i++){  
                 this.ants[i].init(this.distance, this.alpha, this.beta);
             }
-      //  }
+        }
+        
         // Imprime el mejor resultado
         this.printOptimal();
-        */
+         
     }
 
     public void printOptimal() {
