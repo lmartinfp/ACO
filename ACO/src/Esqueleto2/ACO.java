@@ -29,6 +29,8 @@ public class ACO {
     private int antNum; // Número de hormigas
     private int cityNum; // Número de ciudades
     private int MAX_GEN; // Ejecutar álgebra (número de veces que se ejecuta el algoritmo)
+    private int origen;
+    private int destino;
     private double[][] pheromone; // Matriz de feromonas
     private int[][] distance; // Matriz de distancias (coste)
     private int[][] load; // carga de trafico que tiene un nodo en un momento dado
@@ -52,13 +54,15 @@ public class ACO {
     /*
      * Constructor parametrizado
      */
-    public ACO(int [][] traffic,int[][]adjacency ,int[][]capacity,int antNum, int cityNum, int mAX_GEN, double alpha, double beta, double rho) {
+    public ACO(int [][] traffic,int[][]adjacency ,int[][]capacity,int origen,int destino,int antNum, int cityNum, int MAX_GEN, double alpha, double beta, double rho) {
         this.traffic=traffic;
         this.adjacency =adjacency;
         this.capacity=capacity;
+        this.origen=origen;
+        this.destino=destino;
     	this.antNum = antNum;
         this.cityNum = cityNum;
-        this.MAX_GEN = mAX_GEN;
+        this.MAX_GEN = MAX_GEN;
         this.alpha = alpha;
         this.beta = beta;
         this.rho = rho;
@@ -98,12 +102,20 @@ public class ACO {
                         tij++;
                     this.distance[i][j] = tij;
                     this.distance[j][i] = tij;
+                    
                 	//PONEMOS LA MATRIZ DE CARGA A 0 INICIALMENTE
                 	 this.load[i][j] = 0;
                      this.load[j][i] = 0;
                 }
             }
             this.distance[this.cityNum-1][this.cityNum-1] = 0;
+            
+            //---------------------------------------------------------PROVISIONAL------------------------
+           //Para hacer las pruebas mas faciles voy hacer que de momento la matriz de distancias sea la de adyacentes
+            this.distance=this.adjacency;
+            
+            //---------------------------------------------------------------------------------------------
+            
             
             //Las aristas que no están conectadas las ponemos a 0
             finalizarMatrizCostes();
@@ -126,7 +138,7 @@ public class ACO {
             // Coloca las hormigas al azar  
             for(int i = 0;i < this.antNum;i++){  //Inicializamos el vector de hormigas= creamos las hormigas
                 this.ants[i]=new Ant(this.cityNum);  
-                this.ants[i].init(this.distance, this.alpha, this.beta);  
+                this.ants[i].init(this.distance,this.load, this.alpha, this.beta,origen);  
             }  
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -178,57 +190,60 @@ public class ACO {
     /*
      * Método que implementa el movimiento de las hormigas
      */
-    public void solve(int origen, int destino) {
-    	
-    //	calculateKshortestPath(origen,destino);
-   
-   	
-    	
-        for (int g = 0; g < this.MAX_GEN; g++) {
-        	
-            // El proceso de movimiento de cada hormiga
- 
-    		
-    	//bucle mientras no se encuentre solucion? Creo que no nos haría falta porque siempre se lanzarán el numero de hormigas
-        //que indiquemos por parámetros
-            for (int i = 0; i < this.antNum; i++) {
-            	
-                    this.ants[i].selectNextCity(this.pheromone);//Construye solucion
-                
-                this.ants[i].getTabu().add(this.ants[i].getFirstCity());
+    public void solve() {
+
+		// calculateKshortestPath(origen,destino);
+
+		for (int g = 0; g < this.MAX_GEN; g++) {
+
+			// bucle mientras no se encuentre solucion? Creo que no nos haría falta porque
+			// siempre se lanzarán el numero de hormigas
+			// que indiquemos por parámetros
+			for (int i = 0; i < this.antNum; i++) {
+				int sol=0;
+				while (this.ants[i].getCurrentCity() != this.destino) {
+					System.out.println("Hormiga "+i+" construye solucion numero "+ sol );
+					
+					this.ants[i].selectNextCity(this.pheromone);// Construye solucion
+					
+					sol++;
+				}
+
+				this.ants[i].getTabu().add(this.ants[i].getFirstCity());// ??
 //              if(this.ants[i].getTabu().size() < 49) {
 //                  System.out.println(this.ants[i].toString());
 //              }
-                // Calcula la longitud del camino obtenido por la hormiga  
-                this.ants[i].setTourLength(this.ants[i].calculateTourLength());  
-                if(this.ants[i].getTourLength() < this.bestLength){  
-                    // Reserva el camino óptimo  
-                    this.bestLength = this.ants[i].getTourLength();  
-                   // System.out.println(" "+g+"Generación, descubre nuevas soluciones"+this.bestLength);  
-                    //System.out.println("size:"+this.ants[i].getTabu().size());
-                    for(int k = 0;k < this.ants[i].getTabu().size();k++)  
-                        this.bestTour[k] = this.ants[i].getTabu().get(k).intValue();;//Distancia del camino que ha seguido cada hormiga
-                }
-                // Actualiza la matriz de cambio de feromonas
-                for (int j = 0; j < this.ants[i].getTabu().size()-1; j++) {
-                    this.ants[i].getDelta()[this.ants[i].getTabu().get(j).intValue()][this.ants[i].getTabu().get(j+1).intValue()] = (double) (1.0/this.ants[i].getTourLength());
-                    this.ants[i].getDelta()[this.ants[i].getTabu().get(j+1).intValue()][this.ants[i].getTabu().get(j).intValue()] = (double) (1.0/this.ants[i].getTourLength());
-                }
-            }
-            
-         
-            
-            // Actualizar feromonas
-            this.updatePheromone();// Sistema de hormigas-ciclo
-            // Reinicializar la hormiga
-            for(int i = 0;i < this.antNum;i++){  
-                this.ants[i].init(this.distance, this.alpha, this.beta);
-            }
-        }
-        
-        // Imprime el mejor resultado
-        this.printOptimal();
-         
+				// Calcula la longitud del camino obtenido por la hormiga
+				this.ants[i].setTourLength(this.ants[i].calculateTourLength());
+				if (this.ants[i].getTourLength() < this.bestLength) {
+					// Reserva el camino óptimo
+					this.bestLength = this.ants[i].getTourLength();
+					 System.out.println("Generación "+g+" , descubre un camino mejor con coste(media entre carga y distanica): "+this.bestLength);
+		//			 System.out.println("size:"+this.ants[i].getTabu().size());
+					for (int k = 0; k < this.ants[i].getTabu().size(); k++)
+						this.bestTour[k] = this.ants[i].getTabu().get(k).intValue();// Mejor camino hasta el momento
+					
+				}
+				// Actualiza la matriz de cambio de feromonas
+				for (int j = 0; j < this.ants[i].getTabu().size() - 1; j++) {
+					this.ants[i].getDelta()[this.ants[i].getTabu().get(j).intValue()][this.ants[i].getTabu().get(j + 1)
+							.intValue()] = (double) (1.0 / this.ants[i].getTourLength());// 1.0 es el total de feromonas
+					this.ants[i].getDelta()[this.ants[i].getTabu().get(j + 1).intValue()][this.ants[i].getTabu().get(j)
+							.intValue()] = (double) (1.0 / this.ants[i].getTourLength());
+				}
+			}
+
+			// Actualizar feromonas
+			this.updatePheromone();// Sistema de hormigas-ciclo
+			// Reinicializar la hormiga
+			for (int i = 0; i < this.antNum; i++) {
+				this.ants[i].init(this.distance,this.load, this.alpha, this.beta, this.origen);
+			}
+		}
+
+		// Imprime el mejor resultado
+		this.printOptimal();
+
     }
 
     public void printOptimal() {

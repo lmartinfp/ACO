@@ -71,10 +71,11 @@ public class Ant implements Cloneable{
      * @param a
      * @param b
      */
-    public void init(int[][] distance,double a,double b) {
+    public void init(int[][] distance,int[][]load,double a,double b,int origen) {
         this.alpha = a;
         this.beta = b;
         this.distance = distance;
+        this.load=load;
         this.allowedCities = new ArrayList<Integer>();
         this.tabu = new ArrayList<Integer>();
         this.delta = new double[cityNum][cityNum];
@@ -86,16 +87,11 @@ public class Ant implements Cloneable{
             }
         }
 
-        Random random = new Random(System.currentTimeMillis());
-        this.firstCity = random.nextInt(this.cityNum);//La primera ciudad se elige de forma aleatoria
+        this.firstCity = origen;
 
-        for (Integer city:this.allowedCities) {
-            if(city.intValue() == this.firstCity) {
-                this.allowedCities.remove(city);
-                this.tabu.add(city);
-                break;
-            }
-        }
+		this.allowedCities.remove(this.firstCity); //El origen viene predefinido
+		this.tabu.add(this.firstCity);
+		//TODO destino tambien predefinido??
 
         this.currentCity = this.firstCity;
     }
@@ -112,25 +108,21 @@ public class Ant implements Cloneable{
     public void selectNextCity(double[][] pheromone) {
         double[] p = new double[this.cityNum];// Probabilidad de transición
         double sum = 0.d;// Denominador de probabilidad de transición
-
-        
-	
-     
        
         	for (Integer city: this.allowedCities) {  
         		if(distance[this.currentCity][city]!=9999) {//Calculo del sumatorio para ciudades adyacentes(modificacion)
              sum += Math.pow(pheromone[this.currentCity][city.intValue()],
                     this.alpha)*Math.pow(1.d/this.distance[this.currentCity][city.intValue()], this.beta)*Math.pow(1.d/this.load[this.currentCity][city.intValue()], this.beta);
+        		//IMPORTANTE he considerado que el exponente de la carga y la distancia es el mismo para dar la misma importancia
+                // a estos dos factores
         		}
+        		
         		}
         	
         	
         	
          //Cambiar por formula de wuham formula 1 y quitamos los retardos. Me quedo con el siguiente nodo de k shortest path
         //Tendremos que cargar de feromonas el camino con menor MLU (menor saturacion de carga)
-        
-        
-	
         
 //      double s = 0.d;
         for (int i = 0; i < this.cityNum; i++) {
@@ -166,7 +158,7 @@ public class Ant implements Cloneable{
          while(selectP == 0.f) {
              selectP = random.nextDouble();
          }
-         for(int i = 0;i < this.cityNum;i++) {//TODO solo podria seleccionar las adyacentes
+         for(int i = 0;i < this.cityNum;i++) {
              sumSelect += p[i];
              if(sumSelect >= selectP) { //La primera ciudad cuya probabilidad de selección supere al random
                  selectCity = i;
@@ -200,7 +192,7 @@ public class Ant implements Cloneable{
 //          return 0;
 //      }
         for(int i = 0;i < this.tabu.size()-1;i++) {
-            length += this.distance[this.tabu.get(i).intValue()][this.tabu.get(i+1).intValue()];
+            length += (this.distance[this.tabu.get(i).intValue()][this.tabu.get(i+1).intValue()]+this.load[this.tabu.get(i).intValue()][this.tabu.get(i+1).intValue()])/2;
         }
         return length;
     }
