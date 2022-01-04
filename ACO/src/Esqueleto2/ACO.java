@@ -200,16 +200,14 @@ public class ACO {
 			// siempre se lanzarán el numero de hormigas
 			// que indiquemos por parámetros
 			for (int i = 0; i < this.antNum; i++) {
-				int sol=0;
+				
 				while (this.ants[i].getCurrentCity() != this.destino) {
-					System.out.println("Hormiga "+i+" construye solucion numero "+ sol );
 					
-					this.ants[i].selectNextCity(this.pheromone);// Construye solucion
+					this.ants[i].selectNextCity(this.pheromone);// Construye solucion		
 					
-					sol++;
 				}
 
-				this.ants[i].getTabu().add(this.ants[i].getFirstCity());// ??
+//				this.ants[i].getTabu().add(this.ants[i].getFirstCity());// ??
 //              if(this.ants[i].getTabu().size() < 49) {
 //                  System.out.println(this.ants[i].toString());
 //              }
@@ -251,6 +249,9 @@ public class ACO {
          System.out.println("The optimal tour is: ");
          for (int i = 0; i < this.bestTour.length; i++) {
              System.out.println(this.bestTour[i]);
+             if (this.bestTour[i] == destino) {
+					break;
+				}
          }
     }
     public void buildGraphManually(Graph<Integer, DefaultEdge> graph){
