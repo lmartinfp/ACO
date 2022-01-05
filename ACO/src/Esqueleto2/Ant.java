@@ -49,7 +49,9 @@ public class Ant implements Cloneable{
 
     private int cityNum;// Número de ciudades
 
-    private int tourLength;// La longitud del camino
+    private int tourLoad;// La carga del camino
+
+	private int tourDistance; // La longitud del camino
 
     private int firstCity; // Ciudad de inicio
 
@@ -57,12 +59,12 @@ public class Ant implements Cloneable{
 
     public Ant(int cityNum) {
         this.cityNum = cityNum;
-        this.tourLength = 0;
+        this.tourLoad = 0;
     }
 
     public Ant() {
         this.cityNum = 30;
-        this.tourLength = 0;
+        this.tourLoad = 0;
     }
 
     /**
@@ -160,11 +162,11 @@ public class Ant implements Cloneable{
          }
          for(int i = 0;i < this.cityNum;i++) {
              sumSelect += p[i];
+             
+             // if(sumSelect!=0.d) {//ELIMINAMOS LA RULETA Y ELEGIMOS LA PRIMERA SOLUCION???
+            	 
              if(sumSelect >= selectP) { //La primera ciudad cuya probabilidad de selección supere al random
                  selectCity = i;
-                 
-                 //-----EN EL MOMENTO DE SELECCIONAR LA CIUDAD A LA QUE MOVERSE LLENAMOS LA MATRIZ DE TRAFICO? SERIA ESTE UN CASO REAL?---
-                 
                  
                  //this.distance[this.currentCity][selectCity]++;//?? El estado de la topologia será el mismo para la hormiga 1 y la 20
                  
@@ -186,13 +188,24 @@ public class Ant implements Cloneable{
      * Calcular la longitud del camino
      * @return
      */
-    public int calculateTourLength() {
-        int length = 0;
+    public int calculateTourLoad() {
+        int length=0;
 //      if(this.tabu.size() == 1) {
 //          return 0;
 //      }
-        for(int i = 0;i < this.tabu.size()-1;i++) {
-            length += (this.distance[this.tabu.get(i).intValue()][this.tabu.get(i+1).intValue()]+this.load[this.tabu.get(i).intValue()][this.tabu.get(i+1).intValue()])/2;
+        for(int i = 0;i < this.tabu.size()-2;i++) {//ArrayList mete enetero al final sin valor
+            length += this.load[this.tabu.get(i).intValue()][this.tabu.get(i+1).intValue()];
+        }
+        return length;
+    }
+    
+    public int calculateTourDistance(){
+        int length=0;
+//      if(this.tabu.size() == 1) {
+//          return 0;
+//      }
+        for(int i = 0;i < this.tabu.size()-2;i++) {//ArrayList mete enetero al final sin valor
+            length += this.distance[this.tabu.get(i).intValue()][this.tabu.get(i+1).intValue()];
         }
         return length;
     }
@@ -253,14 +266,20 @@ public class Ant implements Cloneable{
         this.cityNum = cityNum;
     }
 
-    public int getTourLength() {
-        return tourLength;
+    public int getTourLoad() {
+        return tourLoad;
     }
 
-    public void setTourLength(int tourLength) {
-        this.tourLength = tourLength;
+    public void setTourLoad(int tourLength) {
+        this.tourLoad = tourLength;
     }
+    public int getTourDistance() {
+  		return tourDistance;
+  	}
 
+  	public void setTourDistance(int tourDistance) {
+  		this.tourDistance = tourDistance;
+  	}
     public int getFirstCity() {
         return firstCity;
     }
@@ -281,7 +300,7 @@ public class Ant implements Cloneable{
     public String toString() {
         return "Ant [allowedCities=" + allowedCities + ", tabu=" + tabu + ", distance=" + Arrays.toString(distance)
                 + ", delta=" + Arrays.toString(delta) + ", alpha=" + alpha + ", beta=" + beta + ", cityNum=" + cityNum
-                + ", tourLength=" + tourLength + ", firstCity=" + firstCity + ", currentCity=" + currentCity + "]";
+                + ", tourLength=" + tourLoad + ", firstCity=" + firstCity + ", currentCity=" + currentCity + "]";
     }
 
 }
