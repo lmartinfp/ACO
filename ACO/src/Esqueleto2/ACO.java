@@ -200,12 +200,15 @@ public class ACO {
 			for (int i = 0; i < this.antNum; i++) {
 				
 				while (this.ants[i].getCurrentCity() != this.destino) {
+					//System.out.println("Construyendo solucion");
 					
-					this.ants[i].selectNextCity(this.pheromone);// Construye solucion		
+					if(this.ants[i].selectNextCity(this.pheromone)==1) {
+						break;
+					}// Construye solucion		
 					
 				}
 
-				this.ants[i].getTabu().add(this.ants[i].getFirstCity());// ??
+			this.ants[i].getTabu().add(this.ants[i].getFirstCity());// ??
 				
 //              if(this.ants[i].getTabu().size() < 49) {
 //                  System.out.println(this.ants[i].toString());
@@ -243,6 +246,8 @@ public class ACO {
 			for (int i = 0; i < this.antNum; i++) {
 				this.ants[i].init(this.distance,this.load, this.alpha, this.beta, this.origen);
 			}
+			
+	
 		}
 
 		// Imprime el mejor resultado

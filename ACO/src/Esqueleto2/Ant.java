@@ -2,9 +2,6 @@ package Esqueleto2;
 import java.util.*;
 import java.io.*;
 import java.net.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Random;
 import java.util.function.Supplier;
 import java.lang.Object;
 import org.jgrapht.*;
@@ -93,8 +90,7 @@ public class Ant implements Cloneable{
 
 		this.allowedCities.remove(this.firstCity); //El origen viene predefinido
 		this.tabu.add(this.firstCity);
-		//TODO destino tambien predefinido??
-
+		
         this.currentCity = this.firstCity;
     }
 
@@ -107,7 +103,7 @@ public class Ant implements Cloneable{
      * 
      * 
      */
-    public void selectNextCity(double[][] pheromone) {
+    public int selectNextCity(double[][] pheromone) {
         double[] p = new double[this.cityNum];// Probabilidad de transición
         double sum = 0.d;// Denominador de probabilidad de transición
        
@@ -152,14 +148,16 @@ public class Ant implements Cloneable{
           * Al final de la búsqueda, solo puede obtener soluciones subóptimas, y el uso de la ruleta puede mejorar las capacidades de búsqueda global del algoritmo sin perder la búsqueda local.
           * Así que aquí elige la ruleta para elegir la siguiente ciudad. Consulte "Inteligencia computacional" Tsinghua University Press
          */
-        // La ruleta elige la siguiente ciudad
-         double sumSelect = 0.d;
+        // La ruleta elige la siguiente ciudad: esta ruleta selecciona las ciudades de un vector ordenado algo que puede resultar una debilidad
+         /* double sumSelect = 0.d;
          int selectCity = -1;
          Random random = new Random(System.currentTimeMillis());
          double selectP = random.nextDouble();
          while(selectP == 0.f) {
              selectP = random.nextDouble();
          }
+         
+      
          for(int i = 0;i < this.cityNum;i++) {
              sumSelect += p[i];
              
@@ -179,6 +177,72 @@ public class Ant implements Cloneable{
                  break;
              }
          }
+       */  
+      
+        
+         //Ruleta inventada
+         
+        double sumSelect = 0.d;
+        int selectCity = -1;
+        int selectP=0;
+        Random random = new Random();
+        
+        Set<Integer> set = new HashSet<Integer>();
+        
+        for (int x=0; x<this.cityNum; x++) {
+        	if(p[x]!=0.0d) {
+        		set.add(x);
+        	}
+        }
+        
+        
+        if(set.isEmpty()) {
+        	System.out.print("Nos hemos metido en un callejon sin salida ");
+  	        for (Integer i : this.tabu) {
+  	        	System.out.print(" -> ");
+				System.out.print(i);
+				
+			}
+  	        System.out.println();
+  	        
+        	return 1;
+        }
+        
+        int size = set.size();
+    	int item = new Random().nextInt(size); // In real life, the Random object should be rather more shared than this
+    	int i = 0;
+        do {
+        	
+        	for(Integer obj : set)
+        	{
+        	    if (i == item)
+        	        selectP= obj;
+        	    i++;
+        	}
+       // System.out.println("Obtenemos: "+selectP);
+        }while(p[selectP]==0.0d);
+        
+        
+      
+        
+//        do {
+//        selectP = random.nextInt(this.cityNum);
+//        while(selectP == 0.f) {
+//            selectP = random.nextInt(this.cityNum);
+//        }
+//        System.out.println("Estoy dentro del bucle");
+//        }while(p[selectP]==0.0d); 
+
+		selectCity = selectP;
+		
+		// Elimina la ciudad seleccionada de las ciudades que permiten la selección
+		this.allowedCities.remove(Integer.valueOf(selectCity));
+		// Agrega una ciudad seleccionada a la tabla tabú
+		this.tabu.add(Integer.valueOf(selectCity));
+		// Cambia la ciudad actual a la ciudad seleccionada
+		this.currentCity = selectCity;
+		return 0;
+ 
     }
     
 

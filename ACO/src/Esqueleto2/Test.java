@@ -26,7 +26,7 @@ public class Test {
                         
                   
         //Las tres matrices se utilizaran para el calculo de la matriz de carga, junto con la de distancias.          
-        ACO aco = new ACO(traffic,adjacency,capacity,0,1,6,adjacency.length, 10, 1.d, 5.d, 0.5d);
+        ACO aco = new ACO(traffic,adjacency,capacity,0,1,6,adjacency.length, 5, 1.d, 5.d, 0.5d);
         aco.init("cities2.txt");
         
         
