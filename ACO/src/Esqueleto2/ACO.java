@@ -197,18 +197,19 @@ public class ACO {
 
 		for (int g = 0; g < this.MAX_GEN; g++) {
 			
+			buclehormigas:
 			for (int i = 0; i < this.antNum; i++) {
 				
 				while (this.ants[i].getCurrentCity() != this.destino) {
 					//System.out.println("Construyendo solucion");
 					
 					if(this.ants[i].selectNextCity(this.pheromone)==1) {
-						break;
+						break buclehormigas;
 					}// Construye solucion		
 					
 				}
 
-			this.ants[i].getTabu().add(this.ants[i].getFirstCity());// ??
+			this.ants[i].getTabu().add(this.ants[i].getFirstCity());
 				
 //              if(this.ants[i].getTabu().size() < 49) {
 //                  System.out.println(this.ants[i].toString());
@@ -217,7 +218,9 @@ public class ACO {
 				this.ants[i].setTourLoad(this.ants[i].calculateTourLoad());
 				this.ants[i].setTourDistance(this.ants[i].calculateTourDistance());
 				
-				System.out.println("Generacion "+g+" |  Hormiga: "+i+" | Coste: "+this.ants[i].getTourLoad());
+				System.out.print("Generacion "+g+" |  Hormiga: "+i+" | Coste: "+this.ants[i].getTourLoad());
+			//	this.ants[i].showTabu();
+				System.out.println();
 				
 				if(this.ants[i].getTourLoad() == this.bestTourLoad) {//En caso de empate es la distancia la que resuelve
 				
@@ -256,18 +259,21 @@ public class ACO {
     }
 
     public void printOptimal() {
-         System.out.println("The optimal length is: " + this.bestTourLoad);
-         System.out.print("The optimal tour is: ");
+    	System.out.println("|-----------------------------|");
+         System.out.println("| The optimal length is: " + this.bestTourLoad+" |");
+         System.out.println("|-----------------------------|");
+         System.out.print("| The optimal tour is: ");
          for (int i = 0; i < this.bestTour.length; i++) {
              System.out.print(this.bestTour[i]);
              if (this.bestTour[i] == destino) {
-            	 System.out.println();
+            	 System.out.println(" |");
 					break;
 				}
              else {
             	 System.out.print(" -> ");
              }
          }
+         System.out.println("|-----------------------------|");
     }
     public void buildGraphManually(Graph<Integer, DefaultEdge> graph){
     	//Creo los vertices
@@ -294,7 +300,7 @@ public class ACO {
     	// Reserva el camino óptimo
 		this.bestTourLoad = ant.getTourLoad();
 		this.bestTourDistance=ant.getTourDistance();
-		 System.out.println("Generación "+g+" , descubre un camino mejor con coste(media entre carga y distanica): "+this.bestTourLoad);
+		 System.out.println("Generación "+g+" , descubre un camino mejor con coste: "+this.bestTourLoad);
 //			 System.out.println("size:"+this.ants[i].getTabu().size());
 		for (int k = 0; k < ant.getTabu().size(); k++)
 			this.bestTour[k] = ant.getTabu().get(k).intValue();// Mejor camino hasta el momento

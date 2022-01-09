@@ -198,11 +198,7 @@ public class Ant implements Cloneable{
         
         if(set.isEmpty()) {
         	System.out.print("Nos hemos metido en un callejon sin salida ");
-  	        for (Integer i : this.tabu) {
-  	        	System.out.print(" -> ");
-				System.out.print(i);
-				
-			}
+  	        showTabu();
   	        System.out.println();
   	        
         	return 1;
@@ -273,6 +269,15 @@ public class Ant implements Cloneable{
         }
         return length;
     }
+    
+    public void showTabu() {
+    	 for (Integer i : this.tabu) {
+	        	System.out.print(" -> ");
+				System.out.print(i);
+				
+			}
+    }
+    
 
     public ArrayList<Integer> getAllowedCities() {
         return allowedCities;
