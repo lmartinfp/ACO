@@ -113,7 +113,7 @@ public class ACO {
             
             //---------------------------------------------------------PROVISIONAL------------------------
            //Para hacer las pruebas mas faciles voy hacer que de momento la matriz de distancias sea la de adyacentes
-            this.distance=this.adjacency;
+           // this.distance=this.adjacency;
             
             //---------------------------------------------------------------------------------------------
             
@@ -192,23 +192,26 @@ public class ACO {
      * Método que implementa el movimiento de las hormigas
      */
     public void solve() {
-
+        
+    	boolean callejonsinsalida;
 		// calculateKshortestPath(origen,destino);
 
 		for (int g = 0; g < this.MAX_GEN; g++) {
 			
-			buclehormigas:
+			
 			for (int i = 0; i < this.antNum; i++) {
 				
+				callejonsinsalida=false;
 				while (this.ants[i].getCurrentCity() != this.destino) {
 					//System.out.println("Construyendo solucion");
 					
 					if(this.ants[i].selectNextCity(this.pheromone)==1) {
-						break buclehormigas;
+						callejonsinsalida=true;
+						break;
 					}// Construye solucion		
 					
 				}
-
+				if (!callejonsinsalida) {
 			this.ants[i].getTabu().add(this.ants[i].getFirstCity());
 				
 //              if(this.ants[i].getTabu().size() < 49) {
@@ -240,6 +243,7 @@ public class ACO {
 							.intValue()] = (double) (1.0 / this.ants[i].getTourLoad());// 1.0 es el total de feromonas
 					this.ants[i].getDelta()[this.ants[i].getTabu().get(j + 1).intValue()][this.ants[i].getTabu().get(j)
 							.intValue()] = (double) (1.0 / this.ants[i].getTourLoad());
+				}
 				}
 			}
 

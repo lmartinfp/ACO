@@ -197,7 +197,7 @@ public class Ant implements Cloneable{
         
         
         if(set.isEmpty()) {
-        	System.out.print("Nos hemos metido en un callejon sin salida ");
+        	System.out.print("La hormiga ha entrado en un callejon sin salida ");
   	        showTabu();
   	        System.out.println();
   	        
