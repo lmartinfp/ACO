@@ -3,6 +3,7 @@ import java.util.*;
 import java.io.*;
 import java.net.*;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 import java.lang.Object;
 import org.jgrapht.*;
 import org.jgrapht.alg.shortestpath.YenKShortestPath;
@@ -182,18 +183,32 @@ public class Ant implements Cloneable{
         
          //Ruleta inventada
          
-        double sumSelect = 0.d;
         int selectCity = -1;
         int selectP=0;
-        Random random = new Random();
+
         
         Set<Integer> set = new HashSet<Integer>();
         
         for (int x=0; x<this.cityNum; x++) {
-        	if(p[x]!=0.0d) {
-        		set.add(x);
+        	if(p[x]!=0.0d&&load[this.currentCity][x]<100) {
+        		set.add(x);//Metemos las ciudades que tienen alguna probabilidad de transaccion en una bolsa
         	}
         }
+        
+        //Comprobamos que los enlaces no estan saturados 
+        
+//        Iterator iter = set.iterator();
+//        while (iter.hasNext()) {
+//        	if(load[currentCity][(int) iter.next()]==100) {
+//        		set.remove((int) iter.next());
+//        	}
+//        }
+//		for (Integer n : set) {
+//			if (load[currentCity][n] == 100) {
+//				set.remove(n);
+//			}
+//		}
+        
         
         
         if(set.isEmpty()) {
@@ -204,19 +219,20 @@ public class Ant implements Cloneable{
         	return 1;
         }
         
+        
         int size = set.size();
-    	int item = new Random().nextInt(size); // In real life, the Random object should be rather more shared than this
+    	int item = new Random().nextInt(size); 
     	int i = 0;
         do {
         	
         	for(Integer obj : set)
         	{
         	    if (i == item)
-        	        selectP= obj;
+        	        selectP= obj;//Elegimos una ciudad aleatoria dentro del conjunto
         	    i++;
         	}
-       // System.out.println("Obtenemos: "+selectP);
-        }while(p[selectP]==0.0d);
+     
+        }while(p[selectP]==0.0d);//Comprbacion de seguridad
         
         
       
