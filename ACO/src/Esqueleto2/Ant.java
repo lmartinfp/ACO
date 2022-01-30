@@ -71,7 +71,7 @@ public class Ant implements Cloneable{
      * @param a
      * @param b
      */
-    public void init(int[][] distance,int[][]load,double a,double b,int origen) {
+    public void init(int[][] distance,int[][]load,double a,double b) {
         this.alpha = a;
         this.beta = b;
         this.distance = distance;
@@ -80,8 +80,28 @@ public class Ant implements Cloneable{
         this.tabu = new ArrayList<Integer>();
         this.delta = new double[cityNum][cityNum];
         for(int i = 0;i < this.cityNum;i++) {
-            Integer city = new Integer(i);
-            this.allowedCities.add(city);
+           // Integer city = new Integer(i);
+            this.allowedCities.add(i);
+            for (int j = 0;j < this.cityNum;j++) {
+                this.delta[i][j] = 0.d;
+            }
+        }
+		
+    }
+    
+    public void reInit(int[][] distance,int[][]load,double a,double b,int origen) {
+        this.alpha = a;
+        this.beta = b;
+        this.distance = distance;
+        this.load=load;
+        this.allowedCities = new ArrayList<Integer>();
+        this.tabu = new ArrayList<Integer>();
+        this.delta = new double[cityNum][cityNum];
+        this.allowedCities.clear();
+        this.tabu.clear();
+        for(int i = 0;i < this.cityNum;i++) {
+           // Integer city = new Integer(i);
+            this.allowedCities.add(i);
             for (int j = 0;j < this.cityNum;j++) {
                 this.delta[i][j] = 0.d;
             }
@@ -93,6 +113,7 @@ public class Ant implements Cloneable{
 		this.tabu.add(this.firstCity);
 		
         this.currentCity = this.firstCity;
+		
     }
 
     /**
@@ -190,24 +211,11 @@ public class Ant implements Cloneable{
         Set<Integer> set = new HashSet<Integer>();
         
         for (int x=0; x<this.cityNum; x++) {
-        	if(p[x]!=0.0d&&load[this.currentCity][x]<100) {
+        	if(p[x]!=0.0d&&load[this.currentCity][x]<100) {//Comprobamos que los enlaces no estan saturados 
         		set.add(x);//Metemos las ciudades que tienen alguna probabilidad de transaccion en una bolsa
         	}
         }
         
-        //Comprobamos que los enlaces no estan saturados 
-        
-//        Iterator iter = set.iterator();
-//        while (iter.hasNext()) {
-//        	if(load[currentCity][(int) iter.next()]==100) {
-//        		set.remove((int) iter.next());
-//        	}
-//        }
-//		for (Integer n : set) {
-//			if (load[currentCity][n] == 100) {
-//				set.remove(n);
-//			}
-//		}
         
         
         
@@ -287,9 +295,10 @@ public class Ant implements Cloneable{
     }
     
     public void showTabu() {
-    	 for (Integer i : this.tabu) {
+    	
+    	 for (int i=0 ;i< this.tabu.size()-1;i++) {
 	        	System.out.print(" -> ");
-				System.out.print(i);
+				System.out.print(this.tabu.get(i));
 				
 			}
     }

@@ -2,6 +2,7 @@ package Esqueleto2;
 
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
@@ -29,8 +30,8 @@ public class ACO {
     private int antNum; // Número de hormigas
     private int cityNum; // Número de ciudades
     private int MAX_GEN; // Ejecutar álgebra (número de veces que se ejecuta el algoritmo)
-    private int origen;
-    private int destino;
+//    private int origen;
+//    private int destino;
     private double[][] pheromone; // Matriz de feromonas
     private int[][] distance; // Matriz de distancias (coste)
     private int[][] load; // carga de trafico que tiene un nodo en un momento dado
@@ -55,12 +56,11 @@ public class ACO {
     /*
      * Constructor parametrizado
      */
-    public ACO(int [][] traffic,int[][]adjacency ,int[][]capacity,int origen,int destino,int antNum, int cityNum, int MAX_GEN, double alpha, double beta, double rho) {
+    public ACO(int [][] traffic,int[][]adjacency ,int[][]capacity,int antNum, int cityNum, int MAX_GEN, double alpha, double beta, double rho) {
         this.traffic=traffic;
         this.adjacency =adjacency;
         this.capacity=capacity;
-        this.origen=origen;
-        this.destino=destino;
+
     	this.antNum = antNum;
         this.cityNum = cityNum;
         this.MAX_GEN = MAX_GEN;
@@ -118,10 +118,10 @@ public class ACO {
             //---------------------------------------------------------------------------------------------
             
             
-            //Las aristas que no están conectadas las ponemos a 0
-            finalizarMatrizCostes();
+            //Las aristas que no están conectadas las ponemos a 9999
+            finalizeCostMatrix();
             //Completamos la matriz de carga con el porcentaje de trafico y capacidad de cada enlace
-            completarMatrizCarga();
+            //completarMatrizCarga();
             
      
             
@@ -135,11 +135,11 @@ public class ACO {
             // Inicializa la longitud de la ruta óptima
             this.bestTourLoad=Integer.MAX_VALUE;
             // Inicializar la ruta óptima
-            this.bestTour=new int[this.cityNum+1];  
+            this.bestTour=new int[this.cityNum];  
             // Coloca las hormigas al azar  
             for(int i = 0;i < this.antNum;i++){  //Inicializamos el vector de hormigas= creamos las hormigas
                 this.ants[i]=new Ant(this.cityNum);  
-                this.ants[i].init(this.distance,this.load, this.alpha, this.beta,origen);  
+                this.ants[i].init(this.distance,this.load, this.alpha, this.beta);  
             }  
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -148,18 +148,18 @@ public class ACO {
         }
     }
 
-    private void completarMatrizCarga() {
-    	for (int i = 0; i < this.adjacency.length; i++) {
-			for (int j = 0; j < this.adjacency.length; j++) {
-				if (this.adjacency[i][j]==1) {//No tenemos arista entre estos dos nodos
-					this.load[i][j]=(this.traffic[i][j]*100)/this.capacity[i][j];
-				}
-			}
-		}
-		
-	}
+//    private void completarMatrizCarga() {
+//    	for (int i = 0; i < this.adjacency.length; i++) {
+//			for (int j = 0; j < this.adjacency.length; j++) {
+//				if (this.adjacency[i][j]==1) {//No tenemos arista entre estos dos nodos
+//					this.load[i][j]=(this.traffic[i][j]*100)/this.capacity[i][j];
+//				}
+//			}
+//		}
+//		
+//	}
 
-	private void finalizarMatrizCostes() {
+	private void finalizeCostMatrix() {
 		for (int i = 0; i < this.adjacency.length; i++) {
 			for (int j = 0; j < this.adjacency.length; j++) {
 				if (this.adjacency[i][j]==0) {//No tenemos arista entre estos dos nodos
@@ -191,59 +191,104 @@ public class ACO {
     /*
      * Método que implementa el movimiento de las hormigas
      */
-    public void solve() {
+    public void solve() throws IOException {
         
-    	boolean callejonsinsalida;
-		// calculateKshortestPath(origen,destino);
-
-		for (int g = 0; g < this.MAX_GEN; g++) {
+    	BufferedWriter  fEnrutamiento = new BufferedWriter (new FileWriter("enrutamiento.txt"));
+    	BufferedWriter  fCarga = new BufferedWriter (new FileWriter("carga.txt"));
+		
+         int it=0;
+		for (int f = 0; f < this.traffic.length; f++) {// Recorremos la matriz de trafico
 			
-			
-			for (int i = 0; i < this.antNum; i++) {
+			for (int c = 0; c < this.traffic.length; c++) {
+				System.out.println("Iteracion: "+it+" | Origen(Fila): "+f+" | Destino (Columna): "+c);
 				
-				callejonsinsalida=false;
-				while (this.ants[i].getCurrentCity() != this.destino) {
-					//System.out.println("Construyendo solucion");
+				// Inicializa la longitud de la ruta óptima
+	            this.bestTourLoad=Integer.MAX_VALUE;
+	            // Inicializar la ruta óptima
+	            this.bestTour=new int[this.cityNum];  
+				completeFirstCity(f);
+				
+			   fEnrutamiento = new BufferedWriter (new FileWriter("enrutamiento.txt",true));
+				if (f!=c) {//De este modo garantizamos las n*n-1 iteraciones (ahorramos la diagonal a 0)
+					boolean callejonsinsalida=false;
 					
-					if(this.ants[i].selectNextCity(this.pheromone)==1) {
-						callejonsinsalida=true;
+					this.buildBestSolution(f,c,callejonsinsalida);
+					
+
+					// Cuando tenemos el mejor camino, entonces actualizamos matriz de carga
+					if(!callejonsinsalida) {
+					this.printOptimal(c);	
+					this.updateLoadMatrix(f,c,fEnrutamiento);
+					}
+					fEnrutamiento.close();
+					it++;
+			}
+			}
+		} // Cierran la matriz de trafico
+
+		//escribe en un fichero la carga de cada enlace
+		this.writeLoadFile(fCarga);
+		
+         fCarga.close();
+    }
+
+   
+
+	private void buildBestSolution(int f, int c ,boolean callejonsinsalida) {
+    	
+		for (int g = 0; g < this.MAX_GEN; g++) {
+
+			for (int i = 0; i < this.antNum; i++) {
+
+				callejonsinsalida = false;
+				while (this.ants[i].getCurrentCity() != c) {
+					// System.out.println("Construyendo solucion");
+
+					if (this.ants[i].selectNextCity(this.pheromone) == 1) {
+						callejonsinsalida = true;
 						break;
-					}// Construye solucion		
-					
+					} // Construye solucion
+
 				}
 				if (!callejonsinsalida) {
-			this.ants[i].getTabu().add(this.ants[i].getFirstCity());
-				
-//              if(this.ants[i].getTabu().size() < 49) {
-//                  System.out.println(this.ants[i].toString());
-//              }
-				// Calcula la longitud del camino obtenido por la hormiga
-				this.ants[i].setTourLoad(this.ants[i].calculateTourLoad());
-				this.ants[i].setTourDistance(this.ants[i].calculateTourDistance());
-				
-				System.out.print("Generacion "+g+" |  Hormiga: "+i+" | Coste: "+this.ants[i].getTourLoad());
-			//	this.ants[i].showTabu();
-				System.out.println();
-				
-				if(this.ants[i].getTourLoad() == this.bestTourLoad) {//En caso de empate es la distancia la que resuelve
-				
-				  if(this.ants[i].calculateTourDistance()<this.bestTourDistance) {
-					  assignBestTour(g,this.ants[i]);
-				  }
+					this.ants[i].getTabu().add(this.ants[i].getFirstCity());
+
+//  if(this.ants[i].getTabu().size() < 49) {
+//      System.out.println(this.ants[i].toString());
+//  }
+					// Calcula la longitud del camino obtenido por la hormiga
+					this.ants[i].setTourLoad(this.ants[i].calculateTourLoad());
+					this.ants[i].setTourDistance(this.ants[i].calculateTourDistance());
+
+					System.out.print("Generacion " + g + " |  Hormiga: " + i + " | Coste: "
+							+ this.ants[i].getTourLoad()+" |");
+					 this.ants[i].showTabu();
+					System.out.println();
+
+					if (this.ants[i].getTourLoad() == this.bestTourLoad) {// En caso de empate es la
+																			// distancia la que resuelve
+
+						if (this.ants[i].calculateTourDistance() < this.bestTourDistance) {
+							assignBestTour(g, this.ants[i]);
+						}
+
+					}
+
+					if (this.ants[i].getTourLoad() < this.bestTourLoad) {
+
+						assignBestTour(g, this.ants[i]);
+					}
+					// Actualiza la matriz de cambio de feromonas
+					for (int j = 0; j < this.ants[i].getTabu().size() - 1; j++) {
+						this.ants[i].getDelta()[this.ants[i].getTabu().get(j).intValue()][this.ants[i]
+								.getTabu().get(j + 1)
+								.intValue()] = (double) (1.0 / this.ants[i].getTourLoad());// 1.0 es el
+																							// total de
+																							// feromonas
+						this.ants[i].getDelta()[this.ants[i].getTabu().get(j + 1).intValue()][this.ants[i]
+								.getTabu().get(j).intValue()] = (double) (1.0 / this.ants[i].getTourLoad());
+					}
 					
-				}
-				
-				if (this.ants[i].getTourLoad() < this.bestTourLoad) {
-					
-					assignBestTour(g,this.ants[i]);
-				}
-				// Actualiza la matriz de cambio de feromonas
-				for (int j = 0; j < this.ants[i].getTabu().size() - 1; j++) {
-					this.ants[i].getDelta()[this.ants[i].getTabu().get(j).intValue()][this.ants[i].getTabu().get(j + 1)
-							.intValue()] = (double) (1.0 / this.ants[i].getTourLoad());// 1.0 es el total de feromonas
-					this.ants[i].getDelta()[this.ants[i].getTabu().get(j + 1).intValue()][this.ants[i].getTabu().get(j)
-							.intValue()] = (double) (1.0 / this.ants[i].getTourLoad());
-				}
 				}
 			}
 
@@ -251,18 +296,87 @@ public class ACO {
 			this.updatePheromone();// Sistema de hormigas-ciclo
 			// Reinicializar la hormiga
 			for (int i = 0; i < this.antNum; i++) {
-				this.ants[i].init(this.distance,this.load, this.alpha, this.beta, this.origen);
+				this.ants[i].reInit(this.distance, this.load, this.alpha, this.beta,f);
 			}
-			
-	
+
 		}
+		
+	}
 
-		// Imprime el mejor resultado
-		this.printOptimal();
+	private void completeFirstCity(int origen) {
+    	int aux=0;
+    	for(int i = 0;i < this.antNum;i++){  //Inicializamos el vector de hormigas= creamos las hormigas
+      
+    		this.ants[i].setFirstCity(origen);
+    		aux=this.ants[i].getAllowedCities().indexOf(origen);
+    		if (aux!=-1) { //encuentra el elemento a borrar
+    			this.ants[i].getAllowedCities().remove(aux); //El origen viene predefinido
+                this.ants[i].getTabu().add(this.ants[i].getFirstCity());
+        		
+                this.ants[i].setCurrentCity(this.ants[i].getFirstCity()); 	
+    		}
+//    		else {
+//    			System.out.println("El origen ya esta fuera de la lista");
+//    		}
+    			
+            
+        } 
+    	
+		
+	}
 
-    }
+	private void updateLoadMatrix(int origen,int dst, BufferedWriter  fEscritura) throws IOException {
+    	int acu = 0;
+		fEscritura.write("Origen: "+origen+" Destino: "+dst+": ");
+		fEscritura.write(this.bestTour[0]+" -> ");
+		acu = traffic[origen][dst];
+		
+		for (int i = 1; i < this.bestTour.length; i++) {
+		
+			    fEscritura.write(Integer.toString(this.bestTour[i]));
+			   
+				
+				this.load[this.bestTour[i-1]][this.bestTour[i]] = this.load[this.bestTour[i-1]][this.bestTour[i]] + acu;
+				this.load[this.bestTour[i]][this.bestTour[i-1]] = this.load[this.bestTour[i-1]][this.bestTour[i]];
+			
+				if(bestTour[i]==dst) {
+					break;
+				}
+				fEscritura.write(" -> ");
+			
+			
+				
+				
+				
+		}
+		//System.out.println("Carga acumulada: "+load[origen][dst]);
+		fEscritura.write("\n");
+		
+		pintarMatriz(load);
+	}
+    
+    private static void pintarMatriz(int matriz[][]) {
+		for (int x=0; x < matriz.length; x++) {
+			  System.out.print("|");
+			  for (int y=0; y < matriz[x].length; y++) {
+			    System.out.print (matriz[x][y]);
+			    if (y!=matriz[x].length-1) System.out.print("\t");
+			  }
+			  System.out.println("|");
+			}
+		
+	}
+    
+    private void writeLoadFile(BufferedWriter  fCarga) throws IOException {
+    	for (int x=0; x < this.load.length; x++) {
+			  for (int y=0; y < this.load.length; y++) {
+				  fCarga.write("Origen: "+x+" Destino: "+y+" | Carga: "+this.load[x][y]+"\n");
+			  }
+			}
+		
+	}
 
-    public void printOptimal() {
+	private void printOptimal(int destino) {
     	System.out.println("|-----------------------------|");
          System.out.println("| The optimal length is: " + this.bestTourLoad+" |");
          System.out.println("|-----------------------------|");
@@ -279,7 +393,7 @@ public class ACO {
          }
          System.out.println("|-----------------------------|");
     }
-    public void buildGraphManually(Graph<Integer, DefaultEdge> graph){
+    private void buildGraphManually(Graph<Integer, DefaultEdge> graph){
     	//Creo los vertices
     	for (int k = 0; k < this.cityNum; k++) {
     	   //Crear una clase que identifique al vertice		
@@ -300,15 +414,16 @@ public class ACO {
 			}
 		}
     }
-    public void assignBestTour(int g,Ant ant) {
+    private void assignBestTour(int g,Ant ant) {
     	// Reserva el camino óptimo
 		this.bestTourLoad = ant.getTourLoad();
 		this.bestTourDistance=ant.getTourDistance();
 		 System.out.println("Generación "+g+" , descubre un camino mejor con coste: "+this.bestTourLoad);
-//			 System.out.println("size:"+this.ants[i].getTabu().size());
-		for (int k = 0; k < ant.getTabu().size(); k++)
-			this.bestTour[k] = ant.getTabu().get(k).intValue();// Mejor camino hasta el momento
 		
+		for (int k = 0; k < ant.getTabu().size()-1; k++) {//Por alguna razon siempre tiene una casilla vacía más
+			
+			this.bestTour[k] = ant.getTabu().get(k).intValue();// Mejor camino hasta el momento
+		}
     }
     
     public void calculateKshortestPath(int origen, int destino) {

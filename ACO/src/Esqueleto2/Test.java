@@ -48,11 +48,11 @@ public class Test {
 		//  --------------------------------------------------TOPOLOGIA 1-------------------------------------------
 	    	network= "Topologia 1";
 	    	 traffic = new int[][] { 
-	    		{ 0, 10, 10, 10, 0},
-	            { 10, 0, 10, 0, 10},
+	    		{ 0, 10, 10, 10, 10},
+	            { 10, 0, 10, 10, 10},
 	            { 10, 10, 0, 10, 10},
-	            { 10, 0, 10, 0, 10},
-	            { 0, 10, 10, 10, 0},
+	            { 10, 10, 10, 0, 10},
+	            { 10, 10, 10, 10, 0},
 	             };
 	             adjacency = new int[][] { 
 	         		{ 0, 1, 1, 1, 0},
@@ -509,37 +509,42 @@ public class Test {
 		
         Scanner reader = new Scanner(System.in);
    		System.out.println("Ejecutando: "+network);
-         System.out.println("Seleccione ciudad de origen y destino.");
-         int origen=0;
-         do {
-         System.out.println("Origen (0-"+(adjacency.length-1)+"): ");
-        
-	
-			origen = reader.nextInt();
-         }while(origen>(adjacency.length-1)||origen<0);	
-         
-         if (opcion==13) {
-        	 searchCity(origen);
-         }
-         
-         int destino=0;
-         do {
-         System.out.println("Destino (0-"+(adjacency.length-1)+"): ");
-        
-		
-			destino = reader.nextInt();
-    }while(origen>(adjacency.length-1)||origen<0);
-         
-         if (opcion==13) {
-        	 searchCity(destino);
-         }
+//         System.out.println("Seleccione ciudad de origen y destino.");
+//         int origen=0;
+//         do {
+//         System.out.println("Origen (0-"+(adjacency.length-1)+"): ");
+//        
+//	
+//			origen = reader.nextInt();
+//         }while(origen>(adjacency.length-1)||origen<0);	
+//         
+//         if (opcion==13) {
+//        	 searchCity(origen);
+//         }
+//         
+//         int destino=0;
+//         do {
+//         System.out.println("Destino (0-"+(adjacency.length-1)+"): ");
+//        
+//		
+//			destino = reader.nextInt();
+//    }while(origen>(adjacency.length-1)||origen<0);
+//         
+//         if (opcion==13) {
+//        	 searchCity(destino);
+//         }
                
         //Las tres matrices se utilizaran para el calculo de la matriz de carga, junto con la de distancias.          
-        ACO aco = new ACO(traffic,adjacency,capacity,origen,destino,10,adjacency.length, 10, 1.d, 5.d, 0.5d);
+        ACO aco = new ACO(traffic,adjacency,capacity,5,adjacency.length, 5, 1.d, 5.d, 0.5d);
         aco.init("cities.txt");
         
         
-        aco.solve();//origen 1 destino 5
+        try {
+			aco.solve();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}//origen 1 destino 5
     }
 
 	private static void searchCity(int num) {
