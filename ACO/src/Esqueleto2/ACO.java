@@ -8,11 +8,16 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import org.jgrapht.Graph;
 import org.jgrapht.GraphPath;
+import org.jgrapht.alg.shortestpath.DijkstraShortestPath;
 import org.jgrapht.alg.shortestpath.YenKShortestPath;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleDirectedWeightedGraph;
@@ -30,8 +35,6 @@ public class ACO {
     private int antNum; // Número de hormigas
     private int cityNum; // Número de ciudades
     private int MAX_GEN; // Ejecutar álgebra (número de veces que se ejecuta el algoritmo)
-//    private int origen;
-//    private int destino;
     private double[][] pheromone; // Matriz de feromonas
     private int[][] distance; // Matriz de distancias (coste)
     private int[][] load; // carga de trafico que tiene un nodo en un momento dado
@@ -45,6 +48,7 @@ public class ACO {
     private double beta;
     private double rho;
 	private int[][] adjacency;
+	private Graph<Integer,DefaultEdge> graph;
 
     /*
      * Constructor por defecto de la clase ACO
@@ -60,7 +64,6 @@ public class ACO {
         this.traffic=traffic;
         this.adjacency =adjacency;
         this.capacity=capacity;
-
     	this.antNum = antNum;
         this.cityNum = cityNum;
         this.MAX_GEN = MAX_GEN;
@@ -68,6 +71,7 @@ public class ACO {
         this.beta = beta;
         this.rho = rho;
         this.ants = new Ant[this.antNum];
+        this.graph= new SimpleDirectedWeightedGraph<>(DefaultEdge.class);
     }
 
     /*
@@ -192,14 +196,44 @@ public class ACO {
      * Método que implementa el movimiento de las hormigas
      */
     public void solve() throws IOException {
+    	
+    	SimpleDateFormat format = new SimpleDateFormat("dd/MM/yyyy kk:mm:ss S");
+    	Date fechaEntrada = new Date();//Cogemos la fecha del sistema en el objeto Date
+    	
+    	String fecha = format.format(fechaEntrada);
+    	System.out.println(fecha);
+    	
+    	buildGraphManually();
         
-    	BufferedWriter  fEnrutamiento = new BufferedWriter (new FileWriter("enrutamiento.txt"));
-    	BufferedWriter  fCarga = new BufferedWriter (new FileWriter("carga.txt"));
+    	FileWriter  fEnrutamiento =  new FileWriter("enrutamiento.csv");
+    	fEnrutamiento.append("Origen");
+    	fEnrutamiento.append(",");
+    	fEnrutamiento.append("Destino");
+    	fEnrutamiento.append(",");
+    	fEnrutamiento.append("Ruta");
+    	fEnrutamiento.append("\n");
+    	FileWriter  fCarga = new FileWriter("carga.csv");
+    	fCarga.append("Origen");
+    	fCarga.append(",");
+    	fCarga.append("Destino");
+    	fCarga.append(",");
+    	fCarga.append("Carga");
+    	fCarga.append("\n");
+    	
+    	FileWriter  fCargaDijkstra = new FileWriter("cargaDijkstra.csv");
+    	fCargaDijkstra.append("Origen");
+    	fCargaDijkstra.append(",");
+    	fCargaDijkstra.append("Destino");
+    	fCargaDijkstra.append(",");
+    	fCargaDijkstra.append("Carga");
+    	fCargaDijkstra.append("\n");
 		
          int it=0;
 		for (int f = 0; f < this.traffic.length; f++) {// Recorremos la matriz de trafico
 			
 			for (int c = 0; c < this.traffic.length; c++) {
+				
+				calculateKshortestPath(f, c,fCargaDijkstra);
 				System.out.println("Iteracion: "+it+" | Origen(Fila): "+f+" | Destino (Columna): "+c);
 				
 				// Inicializa la longitud de la ruta óptima
@@ -208,7 +242,8 @@ public class ACO {
 	            this.bestTour=new int[this.cityNum];  
 				completeFirstCity(f);
 				
-			   fEnrutamiento = new BufferedWriter (new FileWriter("enrutamiento.txt",true));
+			  // fEnrutamiento = new FileWriter("enrutamiento.csv",true);
+			   
 				if (f!=c) {//De este modo garantizamos las n*n-1 iteraciones (ahorramos la diagonal a 0)
 					boolean callejonsinsalida=false;
 					
@@ -220,7 +255,7 @@ public class ACO {
 					this.printOptimal(c);	
 					this.updateLoadMatrix(f,c,fEnrutamiento);
 					}
-					fEnrutamiento.close();
+					
 					it++;
 			}
 			}
@@ -229,7 +264,23 @@ public class ACO {
 		//escribe en un fichero la carga de cada enlace
 		this.writeLoadFile(fCarga);
 		
+		fEnrutamiento.flush();
+		fEnrutamiento.close();
+		
+		fCarga.flush();
          fCarga.close();
+         
+         fCargaDijkstra.flush();
+         fCargaDijkstra.close();
+         
+        Date fechaSalida = new Date();//Cogemos la fecha del sistema en el objeto Date
+     	
+     	String fechasalida = format.format(fechaSalida);
+     	System.out.println(fechasalida);
+     	
+     	long tiempoComputo= fechaSalida.getTime()-fechaEntrada.getTime();
+     	
+         System.out.println("Tiempo de computo: "+tiempoComputo+" milisegundos");
     }
 
    
@@ -325,16 +376,20 @@ public class ACO {
 		
 	}
 
-	private void updateLoadMatrix(int origen,int dst, BufferedWriter  fEscritura) throws IOException {
+	private void updateLoadMatrix(int origen,int dst, FileWriter  fEscritura) throws IOException {
     	int acu = 0;
-		fEscritura.write("Origen: "+origen+" Destino: "+dst+": ");
-		fEscritura.write(this.bestTour[0]+" -> ");
+		fEscritura.append(String.valueOf(origen));
+		fEscritura.append(",");
+		fEscritura.append(String.valueOf(dst));
+		fEscritura.append(",");
+		fEscritura.append(String.valueOf(this.bestTour[0]));
+		fEscritura.append("->");
+	
 		acu = traffic[origen][dst];
 		
 		for (int i = 1; i < this.bestTour.length; i++) {
 		
-			    fEscritura.write(Integer.toString(this.bestTour[i]));
-			   
+			    fEscritura.append(String.valueOf(this.bestTour[i]));
 				
 				this.load[this.bestTour[i-1]][this.bestTour[i]] = this.load[this.bestTour[i-1]][this.bestTour[i]] + acu;
 				this.load[this.bestTour[i]][this.bestTour[i-1]] = this.load[this.bestTour[i-1]][this.bestTour[i]];
@@ -342,15 +397,13 @@ public class ACO {
 				if(bestTour[i]==dst) {
 					break;
 				}
-				fEscritura.write(" -> ");
-			
-			
 				
-				
+				 fEscritura.append("->");
+			
 				
 		}
 		//System.out.println("Carga acumulada: "+load[origen][dst]);
-		fEscritura.write("\n");
+		fEscritura.append("\n");
 		
 		pintarMatriz(load);
 	}
@@ -367,10 +420,16 @@ public class ACO {
 		
 	}
     
-    private void writeLoadFile(BufferedWriter  fCarga) throws IOException {
+    private void writeLoadFile(FileWriter  fCarga) throws IOException {
     	for (int x=0; x < this.load.length; x++) {
 			  for (int y=0; y < this.load.length; y++) {
-				  fCarga.write("Origen: "+x+" Destino: "+y+" | Carga: "+this.load[x][y]+"\n");
+				 
+				  fCarga.append(String.valueOf(x));
+				  fCarga.append(",");
+				  fCarga.append(String.valueOf(y));
+				  fCarga.append(",");
+				  fCarga.append(String.valueOf(this.load[x][y]));
+				  fCarga.append("\n");
 			  }
 			}
 		
@@ -393,22 +452,22 @@ public class ACO {
          }
          System.out.println("|-----------------------------|");
     }
-    private void buildGraphManually(Graph<Integer, DefaultEdge> graph){
+    private void buildGraphManually(){
     	//Creo los vertices
     	for (int k = 0; k < this.cityNum; k++) {
     	   //Crear una clase que identifique al vertice		
-    		graph.addVertex(k);
+    		this.graph.addVertex(k);
 			
 		}
     	
     	//Creo las aristas
     	for (int i = 0; i < this.distance.length; i++) {
 			for (int j = 0; j < this.distance.length; j++) {
-				if(this.distance[i][j]!=9999) {
+				if(this.adjacency[i][j]==1) {
 					graph.addEdge(i,j);
 					graph.addEdge(j, i);
-					graph.setEdgeWeight(i, j, this.distance[i][j]);
-					graph.setEdgeWeight(j, i, this.distance[j][i]);//el peso debe ser el mismo
+					graph.setEdgeWeight(i, j,1);
+					graph.setEdgeWeight(j, i,1);//el peso debe ser el mismo
 				}
 				
 			}
@@ -426,39 +485,44 @@ public class ACO {
 		}
     }
     
-    public void calculateKshortestPath(int origen, int destino) {
+    public void calculateKshortestPath(int origen, int destino, FileWriter fEscritura) throws IOException {
  	
+       
         
-        Graph<Integer,DefaultEdge> topologia = new SimpleDirectedWeightedGraph<>(DefaultEdge.class);
-        
-        
-        //Construyo el grafo a la hora de tomar la decision con todos los datos actualizados (distancias, cargas de los enlaces...)
-		
-        buildGraphManually(topologia);//El estado de la topologia será el mismo para la hormiga 1 y la 20
+        DijkstraShortestPath<Integer, DefaultEdge> shortestpath= new DijkstraShortestPath<>(this.graph);
         
         
-	    YenKShortestPath<Integer, DefaultEdge> shortestpath= new YenKShortestPath<>(topologia);
+       double coste= shortestpath.getPathWeight(origen, destino);
+       
+       fEscritura.append(String.valueOf(origen));
+       fEscritura.append(",");
+       fEscritura.append(String.valueOf(destino));
+       fEscritura.append(",");
+        fEscritura.append(String.valueOf(coste));
+        fEscritura.append("\n");
         
-		List<GraphPath<Integer,DefaultEdge>> rutas = shortestpath.getPaths(origen, destino, 3); //Hay algun enlace sin destino
-		
-		
-		
-		//Para cada solucion recorremos los nodos
-		
-		int i=0;
-		while (i<3) {
-			GraphPath<Integer,DefaultEdge> graph =  rutas.get(i);//Ruta que corresponde a la hormiga en funcion de su identificador(para que las rutas sean distintas)
-			
-			List<Integer>vertex =graph.getVertexList();
-			System.out.print("La solucion "+i+" recorre los siguientes nodos:");
-			for (Integer j : vertex) {
-				System.out.print(" j ");
-			}
-			System.out.println();
-			
-			
-		i++;	
-		}
+//	    YenKShortestPath<Integer, DefaultEdge> shortestpath= new YenKShortestPath<>(topologia);
+//        
+//		List<GraphPath<Integer,DefaultEdge>> rutas = shortestpath.getPaths(origen, destino, 3); //Hay algun enlace sin destino
+//		
+//		
+//		
+//		//Para cada solucion recorremos los nodos
+//		
+//		int i=0;
+//		while (i<3) {
+//			GraphPath<Integer,DefaultEdge> graph =  rutas.get(i);//Ruta que corresponde a la hormiga en funcion de su identificador(para que las rutas sean distintas)
+//			
+//			List<Integer>vertex =graph.getVertexList();
+//			System.out.print("La solucion "+i+" recorre los siguientes nodos:");
+//			for (Integer j : vertex) {
+//				System.out.print(" j ");
+//			}
+//			System.out.println();
+//			
+//			
+//		i++;	
+//		}
 	
     }
     
