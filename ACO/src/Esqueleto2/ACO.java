@@ -11,6 +11,7 @@ import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -227,13 +228,21 @@ public class ACO {
     	fCargaDijkstra.append(",");
     	fCargaDijkstra.append("Carga");
     	fCargaDijkstra.append("\n");
+    	
+    	FileWriter  fEnrutamientoDijkstra = new FileWriter("enrutamientoDijkstra.csv");
+    	fEnrutamientoDijkstra.append("Origen");
+    	fEnrutamientoDijkstra.append(",");
+    	fEnrutamientoDijkstra.append("Destino");
+    	fEnrutamientoDijkstra.append(",");
+    	fEnrutamientoDijkstra.append("Ruta");
+    	fEnrutamientoDijkstra.append("\n");
 		
          int it=0;
 		for (int f = 0; f < this.traffic.length; f++) {// Recorremos la matriz de trafico
 			
 			for (int c = 0; c < this.traffic.length; c++) {
 				
-				calculateKshortestPath(f, c,fCargaDijkstra);
+				
 				System.out.println("Iteracion: "+it+" | Origen(Fila): "+f+" | Destino (Columna): "+c);
 				
 				// Inicializa la longitud de la ruta óptima
@@ -245,6 +254,9 @@ public class ACO {
 			  // fEnrutamiento = new FileWriter("enrutamiento.csv",true);
 			   
 				if (f!=c) {//De este modo garantizamos las n*n-1 iteraciones (ahorramos la diagonal a 0)
+					
+					calculateKshortestPath(f, c,fCargaDijkstra,fEnrutamientoDijkstra);
+					
 					boolean callejonsinsalida=false;
 					
 					this.buildBestSolution(f,c,callejonsinsalida);
@@ -272,6 +284,9 @@ public class ACO {
          
          fCargaDijkstra.flush();
          fCargaDijkstra.close();
+         
+         fEnrutamientoDijkstra.flush();
+         fEnrutamientoDijkstra.close();
          
         Date fechaSalida = new Date();//Cogemos la fecha del sistema en el objeto Date
      	
@@ -485,7 +500,7 @@ public class ACO {
 		}
     }
     
-    public void calculateKshortestPath(int origen, int destino, FileWriter fEscritura) throws IOException {
+    public void calculateKshortestPath(int origen, int destino, FileWriter fCargaDjisktra,FileWriter fEnrutamientoDjisktra) throws IOException {
  	
        
         
@@ -494,12 +509,32 @@ public class ACO {
         
        double coste= shortestpath.getPathWeight(origen, destino);
        
-       fEscritura.append(String.valueOf(origen));
-       fEscritura.append(",");
-       fEscritura.append(String.valueOf(destino));
-       fEscritura.append(",");
-        fEscritura.append(String.valueOf(coste));
-        fEscritura.append("\n");
+       fCargaDjisktra.append(String.valueOf(origen));
+       fCargaDjisktra.append(",");
+       fCargaDjisktra.append(String.valueOf(destino));
+       fCargaDjisktra.append(",");
+       fCargaDjisktra.append(String.valueOf(coste));
+       fCargaDjisktra.append("\n");
+       
+       fEnrutamientoDjisktra.append(String.valueOf(origen));
+       fEnrutamientoDjisktra.append(",");
+       fEnrutamientoDjisktra.append(String.valueOf(destino));
+       fEnrutamientoDjisktra.append(",");
+       
+        
+        
+        GraphPath<Integer, DefaultEdge> path=shortestpath.getPath(origen, destino);
+        
+        List<Integer> vertices =path.getVertexList();
+        
+        for (Integer integer : vertices) {
+        	fEnrutamientoDjisktra.append(String.valueOf(integer));
+        	if(vertices.size()-1==vertices.indexOf(integer)) {
+        		break;
+        	}
+        	fEnrutamientoDjisktra.append("->");
+		}
+        fEnrutamientoDjisktra.append("\n");
         
 //	    YenKShortestPath<Integer, DefaultEdge> shortestpath= new YenKShortestPath<>(topologia);
 //        
