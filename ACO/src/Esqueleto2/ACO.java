@@ -39,6 +39,7 @@ public class ACO {
     private double[][] pheromone; // Matriz de feromonas
     private int[][] distance; // Matriz de distancias (coste)
     private int[][] load; // carga de trafico que tiene un nodo en un momento dado
+    private int[][] loadDijkstra; // carga de trafico que tiene un nodo en un momento dado
     private int[][] traffic; 
     private int [][] capacity;
     private double bestTourLoad; // Carga camino mas optimo
@@ -87,6 +88,9 @@ public class ACO {
             br = new BufferedReader(new InputStreamReader(new FileInputStream(path)));
             this.distance = new int[this.cityNum][this.cityNum];
             this.load = new int[this.cityNum][this.cityNum];
+            this.loadDijkstra=new int[this.cityNum][this.cityNum];
+            
+            
             x = new int[cityNum];  
             y = new int[cityNum];  
             // Leer las coordenadas de cada nodo
@@ -112,6 +116,9 @@ public class ACO {
                 	//PONEMOS LA MATRIZ DE CARGA A 0 INICIALMENTE
                 	 this.load[i][j] = 0;
                      this.load[j][i] = 0;
+                     
+                     this.loadDijkstra[i][j] = 0;
+                     this.loadDijkstra[j][i] = 0;
                 }
             }
             this.distance[this.cityNum-1][this.cityNum-1] = 0;
@@ -153,16 +160,6 @@ public class ACO {
         }
     }
 
-//    private void completarMatrizCarga() {
-//    	for (int i = 0; i < this.adjacency.length; i++) {
-//			for (int j = 0; j < this.adjacency.length; j++) {
-//				if (this.adjacency[i][j]==1) {//No tenemos arista entre estos dos nodos
-//					this.load[i][j]=(this.traffic[i][j]*100)/this.capacity[i][j];
-//				}
-//			}
-//		}
-//		
-//	}
 
 	private void finalizeCostMatrix() {
 		for (int i = 0; i < this.adjacency.length; i++) {
@@ -251,15 +248,14 @@ public class ACO {
 	            this.bestTour=new int[this.cityNum];  
 				completeFirstCity(f);
 				
-			  // fEnrutamiento = new FileWriter("enrutamiento.csv",true);
 			   
 				if (f!=c) {//De este modo garantizamos las n*n-1 iteraciones (ahorramos la diagonal a 0)
 					
-					calculateKshortestPath(f, c,fCargaDijkstra,fEnrutamientoDijkstra);
+					calculateDijkstraShortestPath(f, c,fEnrutamientoDijkstra);
 					
 					boolean callejonsinsalida=false;
 					
-					this.buildBestSolution(f,c,callejonsinsalida);
+					this.buildACOBestSolution(f,c,callejonsinsalida);
 					
 
 					// Cuando tenemos el mejor camino, entonces actualizamos matriz de carga
@@ -274,7 +270,8 @@ public class ACO {
 		} // Cierran la matriz de trafico
 
 		//escribe en un fichero la carga de cada enlace
-		this.writeLoadFile(fCarga);
+		this.writeLoadFile(fCarga,this.load);
+		this.writeLoadFile(fCargaDijkstra,this.loadDijkstra);
 		
 		fEnrutamiento.flush();
 		fEnrutamiento.close();
@@ -296,11 +293,13 @@ public class ACO {
      	long tiempoComputo= fechaSalida.getTime()-fechaEntrada.getTime();
      	
          System.out.println("Tiempo de computo: "+tiempoComputo+" milisegundos");
+         
+         
     }
 
    
 
-	private void buildBestSolution(int f, int c ,boolean callejonsinsalida) {
+	private void buildACOBestSolution(int f, int c ,boolean callejonsinsalida) {
     	
 		for (int g = 0; g < this.MAX_GEN; g++) {
 
@@ -392,7 +391,7 @@ public class ACO {
 	}
 
 	private void updateLoadMatrix(int origen,int dst, FileWriter  fEscritura) throws IOException {
-    	int acu = 0;
+    
 		fEscritura.append(String.valueOf(origen));
 		fEscritura.append(",");
 		fEscritura.append(String.valueOf(dst));
@@ -400,7 +399,7 @@ public class ACO {
 		fEscritura.append(String.valueOf(this.bestTour[0]));
 		fEscritura.append("->");
 	
-		acu = traffic[origen][dst];
+		int acu = traffic[origen][dst];
 		
 		for (int i = 1; i < this.bestTour.length; i++) {
 		
@@ -422,6 +421,8 @@ public class ACO {
 		
 		pintarMatriz(load);
 	}
+	
+	
     
     private static void pintarMatriz(int matriz[][]) {
 		for (int x=0; x < matriz.length; x++) {
@@ -435,7 +436,7 @@ public class ACO {
 		
 	}
     
-    private void writeLoadFile(FileWriter  fCarga) throws IOException {
+    private void writeLoadFile(FileWriter  fCarga, int[][] matrix ) throws IOException {
     	for (int x=0; x < this.load.length; x++) {
 			  for (int y=0; y < this.load.length; y++) {
 				 
@@ -443,7 +444,7 @@ public class ACO {
 				  fCarga.append(",");
 				  fCarga.append(String.valueOf(y));
 				  fCarga.append(",");
-				  fCarga.append(String.valueOf(this.load[x][y]));
+				  fCarga.append(String.valueOf(matrix[x][y]));
 				  fCarga.append("\n");
 			  }
 			}
@@ -481,8 +482,8 @@ public class ACO {
 				if(this.adjacency[i][j]==1) {
 					graph.addEdge(i,j);
 					graph.addEdge(j, i);
-					graph.setEdgeWeight(i, j,1);
-					graph.setEdgeWeight(j, i,1);//el peso debe ser el mismo
+					graph.setEdgeWeight(i, j,0);
+					graph.setEdgeWeight(j, i,0);//el peso debe ser el mismo
 				}
 				
 			}
@@ -500,22 +501,16 @@ public class ACO {
 		}
     }
     
-    public void calculateKshortestPath(int origen, int destino, FileWriter fCargaDjisktra,FileWriter fEnrutamientoDjisktra) throws IOException {
+    public void calculateDijkstraShortestPath(int origen, int destino,FileWriter fEnrutamientoDjisktra) throws IOException {
  	
        
         
         DijkstraShortestPath<Integer, DefaultEdge> shortestpath= new DijkstraShortestPath<>(this.graph);
         
         
-       double coste= shortestpath.getPathWeight(origen, destino);
+       //double coste= shortestpath.getPathWeight(origen, destino);
        
-       fCargaDjisktra.append(String.valueOf(origen));
-       fCargaDjisktra.append(",");
-       fCargaDjisktra.append(String.valueOf(destino));
-       fCargaDjisktra.append(",");
-       fCargaDjisktra.append(String.valueOf(coste));
-       fCargaDjisktra.append("\n");
-       
+    
        fEnrutamientoDjisktra.append(String.valueOf(origen));
        fEnrutamientoDjisktra.append(",");
        fEnrutamientoDjisktra.append(String.valueOf(destino));
@@ -525,7 +520,7 @@ public class ACO {
         
         GraphPath<Integer, DefaultEdge> path=shortestpath.getPath(origen, destino);
         
-        List<Integer> vertices =path.getVertexList();
+        List<Integer> vertices=path.getVertexList();
         
         for (Integer integer : vertices) {
         	fEnrutamientoDjisktra.append(String.valueOf(integer));
@@ -535,6 +530,35 @@ public class ACO {
         	fEnrutamientoDjisktra.append("->");
 		}
         fEnrutamientoDjisktra.append("\n");
+        
+        // Actualizar la matriz de carga Dijkstra
+        
+        
+        int acu = this.traffic[origen][destino];
+		
+		for (int i = 1; i < vertices.size(); i++) {
+		
+				
+				this.loadDijkstra[vertices.get(i-1)][vertices.get(i)] = this.loadDijkstra[vertices.get(i-1)][vertices.get(i)] + acu;
+				this.loadDijkstra[vertices.get(i)][vertices.get(i-1)] = this.loadDijkstra[vertices.get(i-1)][vertices.get(i)];
+			
+				if(vertices.get(i)==destino) 
+					break;
+				}
+        
+        // actualizar la estructura del grafo
+        
+		for (int i = 0; i < this.loadDijkstra.length; i++) {
+			for (int j = 0; j < this.loadDijkstra.length; j++) {
+				if(this.adjacency[i][j]==1) {
+				
+					graph.setEdgeWeight(i, j,this.loadDijkstra[i][j]);
+					graph.setEdgeWeight(j, i,this.loadDijkstra[i][j]);
+				}
+				
+			}
+		}
+        
         
 //	    YenKShortestPath<Integer, DefaultEdge> shortestpath= new YenKShortestPath<>(topologia);
 //        
