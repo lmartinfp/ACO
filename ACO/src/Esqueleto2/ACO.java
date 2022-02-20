@@ -38,10 +38,10 @@ public class ACO {
     private int MAX_GEN; // Ejecutar álgebra (número de veces que se ejecuta el algoritmo)
     private double[][] pheromone; // Matriz de feromonas
     private int[][] distance; // Matriz de distancias (coste)
-    private int[][] load; // carga de trafico que tiene un nodo en un momento dado
-    private int[][] loadDijkstra; // carga de trafico que tiene un nodo en un momento dado
-    private int[][] traffic; 
-    private int [][] capacity;
+    private float[][] load; // carga de trafico que tiene un nodo en un momento dado
+    private float[][] loadDijkstra; // carga de trafico que tiene un nodo en un momento dado
+    private float[][] traffic; 
+    private float [][] capacity;
     private double bestTourLoad; // Carga camino mas optimo
     private double bestTourDistance; // Longitud camino mas óptimo
     private int[] bestTour; // Mejor camino
@@ -62,7 +62,7 @@ public class ACO {
     /*
      * Constructor parametrizado
      */
-    public ACO(int [][] traffic,int[][]adjacency ,int[][]capacity,int antNum, int cityNum, int MAX_GEN, double alpha, double beta, double rho) {
+    public ACO(float [][] traffic,int[][]adjacency ,float[][]capacity,int antNum, int cityNum, int MAX_GEN, double alpha, double beta, double rho) {
         this.traffic=traffic;
         this.adjacency =adjacency;
         this.capacity=capacity;
@@ -87,8 +87,8 @@ public class ACO {
         try {
             br = new BufferedReader(new InputStreamReader(new FileInputStream(path)));
             this.distance = new int[this.cityNum][this.cityNum];
-            this.load = new int[this.cityNum][this.cityNum];
-            this.loadDijkstra=new int[this.cityNum][this.cityNum];
+            this.load = new float[this.cityNum][this.cityNum];
+            this.loadDijkstra=new float[this.cityNum][this.cityNum];
             
             
             x = new int[cityNum];  
@@ -151,7 +151,7 @@ public class ACO {
             // Coloca las hormigas al azar  
             for(int i = 0;i < this.antNum;i++){  //Inicializamos el vector de hormigas= creamos las hormigas
                 this.ants[i]=new Ant(this.cityNum);  
-                this.ants[i].init(this.distance,this.load, this.alpha, this.beta);  
+                this.ants[i].init(this.distance,this.load,this.capacity ,this.alpha, this.beta);  
             }  
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -246,7 +246,10 @@ public class ACO {
 	            this.bestTourLoad=Integer.MAX_VALUE;
 	            // Inicializar la ruta óptima
 	            this.bestTour=new int[this.cityNum];  
-				completeFirstCity(f);
+//				completeFirstCity(f);
+	            for (int i = 0; i < this.antNum; i++) {
+					this.ants[i].reInit(this.distance, this.load, this.alpha, this.beta,f);
+				}
 				
 			   
 				if (f!=c) {//De este modo garantizamos las n*n-1 iteraciones (ahorramos la diagonal a 0)
@@ -371,7 +374,7 @@ public class ACO {
 	private void completeFirstCity(int origen) {
     	int aux=0;
     	for(int i = 0;i < this.antNum;i++){  //Inicializamos el vector de hormigas= creamos las hormigas
-      
+    		 this.ants[i].getTabu().clear();
     		this.ants[i].setFirstCity(origen);
     		aux=this.ants[i].getAllowedCities().indexOf(origen);
     		if (aux!=-1) { //encuentra el elemento a borrar
@@ -399,11 +402,15 @@ public class ACO {
 		fEscritura.append(String.valueOf(this.bestTour[0]));
 		fEscritura.append("->");
 	
-		int acu = traffic[origen][dst];
+		float acu = traffic[origen][dst];
 		
 		for (int i = 1; i < this.bestTour.length; i++) {
+			
+			 if (existeEnlace(i)) {
 		
 			    fEscritura.append(String.valueOf(this.bestTour[i]));
+			    
+			   
 				
 				this.load[this.bestTour[i-1]][this.bestTour[i]] = this.load[this.bestTour[i-1]][this.bestTour[i]] + acu;
 				this.load[this.bestTour[i]][this.bestTour[i-1]] = this.load[this.bestTour[i-1]][this.bestTour[i]];
@@ -413,7 +420,10 @@ public class ACO {
 				}
 				
 				 fEscritura.append("->");
-			
+			 }
+			 else {
+				 System.out.println("El enlace que se desea escribir no existe");
+			 }
 				
 		}
 		//System.out.println("Carga acumulada: "+load[origen][dst]);
@@ -422,7 +432,17 @@ public class ACO {
 		pintarMatriz(load);
 	}
 	
-	
+	 public boolean existeEnlace (int i) {
+		 
+		 if (this.adjacency[this.bestTour[i-1]][this.bestTour[i]]==1 && this.adjacency[this.bestTour[i]][this.bestTour[i-1]]==1 ) {
+			 return true;
+		 }
+		 else {
+			 return false; 
+		 }
+		 
+	  	 
+	 }
     
     private static void pintarMatriz(int matriz[][]) {
 		for (int x=0; x < matriz.length; x++) {
@@ -436,7 +456,19 @@ public class ACO {
 		
 	}
     
-    private void writeLoadFile(FileWriter  fCarga, int[][] matrix ) throws IOException {
+    private static void pintarMatriz(float matriz[][]) {
+ 		for (int x=0; x < matriz.length; x++) {
+ 			  System.out.print("|");
+ 			  for (int y=0; y < matriz[x].length; y++) {
+ 			    System.out.print (matriz[x][y]);
+ 			    if (y!=matriz[x].length-1) System.out.print("\t");
+ 			  }
+ 			  System.out.println("|");
+ 			}
+ 		
+ 	}
+    
+    private void writeLoadFile(FileWriter  fCarga, float[][] matrix ) throws IOException {
     	for (int x=0; x < this.load.length; x++) {
 			  for (int y=0; y < this.load.length; y++) {
 				 
@@ -534,7 +566,7 @@ public class ACO {
         // Actualizar la matriz de carga Dijkstra
         
         
-        int acu = this.traffic[origen][destino];
+        float acu = this.traffic[origen][destino];
 		
 		for (int i = 1; i < vertices.size(); i++) {
 		

@@ -35,7 +35,9 @@ public class Ant implements Cloneable{
 
     private int [][] distance;// Matriz de distancias que va a ser para nosotros el coste
     
-    private int [][] load;// Matriz de distancias
+    private float [][] load;// Matriz de distancias
+    
+    private float [][] capacity; //matriz de capacidades
 
     private double[][] delta; // Matriz de cambio de feromonas
 
@@ -71,10 +73,11 @@ public class Ant implements Cloneable{
      * @param a
      * @param b
      */
-    public void init(int[][] distance,int[][]load,double a,double b) {
+    public void init(int[][] distance,float[][]load,float capacities[][],double a,double b) {
         this.alpha = a;
         this.beta = b;
         this.distance = distance;
+        this.capacity=capacities;
         this.load=load;
         this.allowedCities = new ArrayList<Integer>();
         this.tabu = new ArrayList<Integer>();
@@ -89,7 +92,7 @@ public class Ant implements Cloneable{
 		
     }
     
-    public void reInit(int[][] distance,int[][]load,double a,double b,int origen) {
+    public void reInit(int[][] distance,float[][]load,double a,double b,int origen) {
         this.alpha = a;
         this.beta = b;
         this.distance = distance;
@@ -211,7 +214,7 @@ public class Ant implements Cloneable{
         Set<Integer> set = new HashSet<Integer>();
         
         for (int x=0; x<this.cityNum; x++) {
-        	if(p[x]!=0.0d&&load[this.currentCity][x]<100) {//Comprobamos que los enlaces no estan saturados 
+        	if(p[x]!=0.0d&&load[this.currentCity][x]<this.capacity[this.currentCity][x]) {//Comprobamos que los enlaces no estan saturados 
         		set.add(x);//Metemos las ciudades que tienen alguna probabilidad de transaccion en una bolsa
         	}
         }

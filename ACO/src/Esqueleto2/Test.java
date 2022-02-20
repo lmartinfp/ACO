@@ -14,9 +14,9 @@ public class Test {
     	String cadena; //String para guardar lo que se introduzca por teclado
     	int opcion = 0; //Guardar la opción en formato entero
     	String network= "";
-    	int traffic[][] = null;
+    	float traffic[][] = null;
     	int adjacency[][] = null;
-    	int capacity[][] = null;
+    	float capacity[][] = null;
     	do {
     	System.out.println("Elegir topología:");
     	System.out.println("1- Topología 1");
@@ -39,32 +39,32 @@ public class Test {
 		case 1:
 		//  --------------------------------------------------TOPOLOGIA 1-------------------------------------------  
 //	                        
-			capacity = loadMatrixCSV("capacities1.csv");
-			traffic = loadMatrixCSV("traffic1.csv");
-			adjacency = loadMatrixCSV("adjacency1.csv");
+			capacity = floatMatrixCSV("capacities1.csv");
+			traffic = floatMatrixCSV("traffic1.csv");
+			adjacency = intMatrixCSV("adjacency1.csv");
 		
 			break;
 		case 2:
 		   	// -------------------------------------------------Nobel------------------------------------------
 	    	network= "Nobel";
-	    	capacity = loadMatrixCSV("nobelCapacities.csv");
-			traffic = loadMatrixCSV("nobelTM1.csv");
-			adjacency = loadMatrixCSV("nobelAdjacency.csv");
+	    	capacity = floatMatrixCSV("nobelCapacities.csv");
+			traffic = floatMatrixCSV("nobelTM1.csv");
+			adjacency = intMatrixCSV("nobelAdjacency.csv");
 			break;
         case 3:
         	//-----------------------------------------------Geant----------------------------------------------------------
         	network= "Geant";      
-        	capacity = loadMatrixCSV("geantCapacities.csv");
-			traffic = loadMatrixCSV("geantTM1.csv");
-			adjacency = loadMatrixCSV("geantAdjacency.csv");
+        	capacity = floatMatrixCSV("geantCapacities.csv");
+			traffic = floatMatrixCSV("geantTM1.csv");
+			adjacency = intMatrixCSV("geantAdjacency.csv");
 			break;
 			
 		case 4:
 		    //----------------------------------------------Germany---------------------------------------------------  
 	    	network= "Germany";                                        
-	    	capacity = loadMatrixCSV("germanyCapacities.csv");
-			traffic = loadMatrixCSV("germanyTM1.csv");
-			adjacency = loadMatrixCSV("germanyAdjacency.csv");                                    
+	    	capacity = floatMatrixCSV("germanyCapacities.csv");
+			traffic = floatMatrixCSV("germanyTM1.csv");
+			adjacency = intMatrixCSV("germanyAdjacency.csv");                                    
 	         
 			break;
 	
@@ -89,7 +89,7 @@ public class Test {
    		
                
         //Las tres matrices se utilizaran para el calculo de la matriz de carga, junto con la de distancias.          
-        ACO aco = new ACO(traffic,adjacency,capacity,5,adjacency.length, 5, 1.d, 5.d, 0.5d);
+        ACO aco = new ACO(traffic,adjacency,capacity,10,adjacency.length, 10, 1.d, 5.d, 0.5d);
         aco.init("cities.txt");
         
         
@@ -112,8 +112,19 @@ public class Test {
 				}
 			
 		}
+	   private static void pintarMatriz(float matriz[][]) {
+				for (int x=0; x < matriz.length; x++) {
+					  System.out.print("|");
+					  for (int y=0; y < matriz[x].length; y++) {
+					    System.out.print (matriz[x][y]);
+					    if (y!=matriz[x].length-1) System.out.print("\t");
+					  }
+					  System.out.println("|");
+					}
+				
+			}
 	
-	   static int[][] loadMatrixCSV(String pathToCsv) throws IOException {
+	   static int[][] intMatrixCSV(String pathToCsv) throws IOException {
 		   BufferedReader csvReader = new BufferedReader(new FileReader(pathToCsv));
 		   String row;
 		   
@@ -139,5 +150,29 @@ public class Test {
 		return matrix;
 	    }
 
-	
+	   static float[][] floatMatrixCSV(String pathToCsv) throws IOException {
+		   BufferedReader csvReader = new BufferedReader(new FileReader(pathToCsv));
+		   String row;
+		   
+		   row=csvReader.readLine();
+		   String[] data = row.split(",");
+		   int tamanio=data.length;
+		   float matrix[][]=new float[tamanio][tamanio];
+		   int i=0;
+		   csvReader= new  BufferedReader(new FileReader(pathToCsv));
+		   while ((row = csvReader.readLine()) != null) {
+		       data = row.split(",");
+		       // do something with the data
+		       for (int j=0;j< tamanio;j++) {
+		   
+		    	   matrix[i][j]= Float.valueOf(data[j]);
+			     
+			   }
+		       i++;  
+			}
+		   
+		   
+		   csvReader.close();
+		return matrix;
+	    }
 }
