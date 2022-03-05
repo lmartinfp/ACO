@@ -5,6 +5,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -44,6 +45,7 @@ public class ACO {
     private float [][] capacity;
     private double bestTourLoad; // Carga camino mas optimo
     private double bestTourDistance; // Longitud camino mas óptimo
+    private double bestTourMLU;
     private int[] bestTour; // Mejor camino
     // Tres parámetros
     private double alpha; 
@@ -139,13 +141,13 @@ public class ACO {
             
             // Inicializar la matriz de feromonas
             this.pheromone=new double[this.cityNum][this.cityNum];
-            for(int i = 0;i < this.cityNum;i++) {
-                for(int j = 0;j < this.cityNum;j++) {
-                    this.pheromone[i][j] = 0.1d; //valor por defecto de las feromonas
-                }
-            }
+         
+            
+            initPheromones();
+            
+            
             // Inicializa la longitud de la ruta óptima
-            this.bestTourLoad=Integer.MAX_VALUE;
+            this.bestTourMLU=Float.MAX_VALUE;
             // Inicializar la ruta óptima
             this.bestTour=new int[this.cityNum];  
             // Coloca las hormigas al azar  
@@ -161,46 +163,13 @@ public class ACO {
     }
 
 
-	private void finalizeCostMatrix() {
-		for (int i = 0; i < this.adjacency.length; i++) {
-			for (int j = 0; j < this.adjacency.length; j++) {
-				if (this.adjacency[i][j]==0) {//No tenemos arista entre estos dos nodos
-					this.distance[i][j]=9999;
-				}
-			}
-		}
-	}
-
-	/**
-     * Actualizar feromonas
-     * Seguir formula wuham
-     */
-    private void updatePheromone() {
-        // Volatilización de feromonas  
-        for(int i = 0;i < this.cityNum;i++)  
-            for(int j = 0;j < this.cityNum;j++)  
-                this.pheromone[i][j] = this.pheromone[i][j] * (1 - this.rho);//RHO es el valor de volatilizacion de las feromonas 
-        // Actualización de feromonas (alta complejidad)
-        for(int i = 0;i < this.cityNum;i++) {
-            for(int j = 0;j < this.cityNum;j++) {
-                for(int k = 0;k < this.antNum;k++) {
-                    this.pheromone[i][j] += this.ants[k].getDelta()[i][j];//Utilizamos una formula para actualizar feromonas que probablemente haya que cambiar
-                }
-            }
-        }
-    }
+	
 
     /*
      * Método que implementa el movimiento de las hormigas
      */
     public void solve() throws IOException {
-    	
-    	SimpleDateFormat format = new SimpleDateFormat("dd/MM/yyyy kk:mm:ss S");
-    	Date fechaEntrada = new Date();//Cogemos la fecha del sistema en el objeto Date
-    	
-    	String fecha = format.format(fechaEntrada);
-    	System.out.println(fecha);
-    	
+    		
     	buildGraphManually();
         
     	FileWriter  fEnrutamiento =  new FileWriter("enrutamiento.csv");
@@ -233,6 +202,12 @@ public class ACO {
     	fEnrutamientoDijkstra.append(",");
     	fEnrutamientoDijkstra.append("Ruta");
     	fEnrutamientoDijkstra.append("\n");
+    	
+    	SimpleDateFormat format = new SimpleDateFormat("dd/MM/yyyy kk:mm:ss S");
+    	Date fechaEntrada = new Date();//Cogemos la fecha del sistema en el objeto Date
+    	
+    	String fecha = format.format(fechaEntrada);
+    	System.out.println(fecha);
 		
          int it=0;
 		for (int f = 0; f < this.traffic.length; f++) {// Recorremos la matriz de trafico
@@ -243,14 +218,17 @@ public class ACO {
 				System.out.println("Iteracion: "+it+" | Origen(Fila): "+f+" | Destino (Columna): "+c);
 				
 				// Inicializa la longitud de la ruta óptima
-	            this.bestTourLoad=Integer.MAX_VALUE;
+	            this.bestTourMLU=Float.MAX_VALUE;
+	          
 	            // Inicializar la ruta óptima
 	            this.bestTour=new int[this.cityNum];  
 //				completeFirstCity(f);
 	            for (int i = 0; i < this.antNum; i++) {
 					this.ants[i].reInit(this.distance, this.load, this.alpha, this.beta,f);
 				}
-				
+	            
+	            //Reiniciar matriz feromonas
+				initPheromones();
 			   
 				if (f!=c) {//De este modo garantizamos las n*n-1 iteraciones (ahorramos la diagonal a 0)
 					
@@ -258,7 +236,7 @@ public class ACO {
 					
 					boolean callejonsinsalida=false;
 					
-					this.buildACOBestSolution(f,c,callejonsinsalida);
+					this.buildACOBestSolution(f,c,callejonsinsalida,this.traffic[f][c]);
 					
 
 					// Cuando tenemos el mejor camino, entonces actualizamos matriz de carga
@@ -276,7 +254,8 @@ public class ACO {
 		this.writeLoadFile(fCarga,this.load);
 		this.writeLoadFile(fCargaDijkstra,this.loadDijkstra);
 		
-		fEnrutamiento.flush();
+
+     	fEnrutamiento.flush();
 		fEnrutamiento.close();
 		
 		fCarga.flush();
@@ -296,13 +275,210 @@ public class ACO {
      	long tiempoComputo= fechaSalida.getTime()-fechaEntrada.getTime();
      	
          System.out.println("Tiempo de computo: "+tiempoComputo+" milisegundos");
+        
+//         fEnrutamiento.append("Tiempo de computo");
+//         fEnrutamiento.append(",");
+//         fEnrutamiento.append(String.valueOf(tiempoComputo));
+//         
+//         fCarga.append("Tiempo de computo");
+//         fCarga.append(",");
+//         fCarga.append(String.valueOf(tiempoComputo));
+//         
+//         fCargaDijkstra.append("Tiempo de computo");
+//         fCargaDijkstra.append(",");
+//         fCargaDijkstra.append(String.valueOf(tiempoComputo));
+//         
+//         fEnrutamientoDijkstra.append("Tiempo de computo");
+//         fEnrutamientoDijkstra.append(",");
+//         fEnrutamientoDijkstra.append(String.valueOf(tiempoComputo));
          
+         
+         //Calculamos la carga máxima, media y mínima
+         loadStatistics("carga.csv");
+         loadStatistics("cargaDijkstra.csv");
+         
+         //Calculamos la carga mínima, media y máxima de los caminos
+         routingStatistics("enrutamiento.csv",fEnrutamiento);
+         routingStatistics("enrutamientoDijkstra.csv",fEnrutamientoDijkstra);
+            
          
     }
 
-   
+    private void finalizeCostMatrix() {
+		for (int i = 0; i < this.adjacency.length; i++) {
+			for (int j = 0; j < this.adjacency.length; j++) {
+				if (this.adjacency[i][j]==0) {//No tenemos arista entre estos dos nodos
+					this.distance[i][j]=9999;
+				}
+			}
+		}
+	}
 
-	private void buildACOBestSolution(int f, int c ,boolean callejonsinsalida) {
+	/**
+     * Actualizar feromonas
+     * Seguir formula wuham
+     */
+    private void updatePheromone() {
+        // Volatilización de feromonas  
+        for(int i = 0;i < this.cityNum;i++)  
+            for(int j = 0;j < this.cityNum;j++)  
+                this.pheromone[i][j] = this.pheromone[i][j] * (1 - this.rho);//RHO es el valor de volatilizacion de las feromonas 
+        // Actualización de feromonas (alta complejidad)
+        for(int i = 0;i < this.cityNum;i++) {
+            for(int j = 0;j < this.cityNum;j++) {
+                for(int k = 0;k < this.antNum;k++) {
+                    this.pheromone[i][j] += this.ants[k].getDelta()[i][j];//Utilizamos una formula para actualizar feromonas que probablemente haya que cambiar
+                }
+            }
+        }
+    }
+
+	private void initPheromones() {
+		 for(int i = 0;i < this.cityNum;i++) {
+             for(int j = 0;j < this.cityNum;j++) {
+                 this.pheromone[i][j] = 0.1d; //valor por defecto de las feromonas
+             }
+         }
+		
+	}
+
+	private void routingStatistics(String path, FileWriter flujoEscritura) {
+		
+		float max=0;
+		float avg=0;
+		float min=Float.MAX_VALUE;
+		float acu=0;
+		int i=0;
+		 BufferedReader bufferLectura = null;
+		 try {
+		  // Abrir el .csv en buffer de lectura
+		  bufferLectura = new BufferedReader(new FileReader(path));
+		  
+		  // Leer una linea del archivo
+		  String linea = bufferLectura.readLine();
+		  
+		  while (linea != null) {
+		  
+		   String[] campos = linea.split(","); 
+		   
+		   //TODO completar con la lectura
+		   
+		   
+		   
+		   // Volver a leer otra línea del fichero
+		   linea = bufferLectura.readLine();
+		  }
+		 } 
+		 catch (IOException e) {
+		  e.printStackTrace();
+		 }
+		 finally {
+		  // Cierro el buffer de lectura
+		  if (bufferLectura != null) {
+		   try {
+		    bufferLectura.close();
+		   } 
+		   catch (IOException e) {
+		    e.printStackTrace();
+		   }
+		  }
+		 }
+		
+	}
+
+	private void loadStatistics(String path) throws IOException {
+		
+		float max=0;
+		double avg=0;
+		float min=Float.MAX_VALUE;
+		double acu=0;
+		int i=0;
+		int imin = 0,jmin = 0,imax = 0,jmax = 0;
+		float num=0;
+		float den=0;
+		
+		 // Abrir el .csv en buffer de lectura
+		 BufferedReader bufferLectura = new BufferedReader(new FileReader(path));
+		 try {
+		 
+		  
+		  // Leer una linea del archivo
+		  String linea = bufferLectura.readLine();
+		  linea = bufferLectura.readLine();
+		  
+		  while (linea != null) {
+		   // Sepapar la linea leída con el separador definido previamente
+		   String[] campos = linea.split(","); 
+		   
+		   if (!campos[0].equals(campos[1])&&Float.parseFloat(campos[2])!=0.0) {
+		   num = Float.parseFloat(campos[2])*100;
+		   den=edgeCapacity(Integer.parseInt(campos[0]),Integer.parseInt(campos[1]));
+		   
+		   acu=acu+(num/den);
+		   if(Float.parseFloat(campos[2])<min) {
+			   min=Float.parseFloat(campos[2]);
+			   imin= Integer.parseInt(campos[0]);
+			   jmin=Integer.parseInt(campos[1]);
+		   }
+		   if( Float.parseFloat(campos[2])>max) {
+			   max=Float.parseFloat(campos[2]);
+			   imax= Integer.parseInt(campos[0]);
+			   jmax=Integer.parseInt(campos[1]);
+		   }
+		   i++;
+		   }
+		   // Volver a leer otra línea del fichero
+		   linea = bufferLectura.readLine();
+		  
+		  
+		  }
+		
+		 } 
+		 catch (IOException e) {
+		  e.printStackTrace();
+		 }
+		 finally {
+		  // Cierro el buffer de lectura
+		  if (bufferLectura != null) {
+		   try {
+		    bufferLectura.close();
+		   } 
+		   catch (IOException e) {
+		    e.printStackTrace();
+		   }
+		  }
+		 }
+		 
+		 
+		 avg=acu/i;
+		 
+	
+		 
+		 FileWriter  flujoEscritura = new FileWriter(path,true);
+		 
+		 flujoEscritura.append("Carga máxima (%)");
+		 flujoEscritura.append(",");
+		 flujoEscritura.append(String.valueOf((max*100)/edgeCapacity(imax,jmax)));
+		 flujoEscritura.append("\n");
+		 flujoEscritura.append("Carga mínima (%)");
+		 flujoEscritura.append(",");
+		 flujoEscritura.append(String.valueOf((min*100)/edgeCapacity(imin,jmin)));
+		 flujoEscritura.append("\n");
+		 flujoEscritura.append("Carga media (%)");
+		 flujoEscritura.append(",");
+		 flujoEscritura.append(String.valueOf(avg));
+		 flujoEscritura.append("\n");
+		 
+		 flujoEscritura.flush();
+		 flujoEscritura.close();
+	}
+
+	private float edgeCapacity(int i, int j) {
+		
+		return this.capacity[i][j];
+	}
+
+	private void buildACOBestSolution(int f, int c ,boolean callejonsinsalida, float trafico) {
     	
 		for (int g = 0; g < this.MAX_GEN; g++) {
 
@@ -312,7 +488,7 @@ public class ACO {
 				while (this.ants[i].getCurrentCity() != c) {
 					// System.out.println("Construyendo solucion");
 
-					if (this.ants[i].selectNextCity(this.pheromone) == 1) {
+					if (this.ants[i].selectNextCity(this.pheromone,trafico) == 1) {
 						callejonsinsalida = true;
 						break;
 					} // Construye solucion
@@ -327,22 +503,23 @@ public class ACO {
 					// Calcula la longitud del camino obtenido por la hormiga
 					this.ants[i].setTourLoad(this.ants[i].calculateTourLoad());
 					this.ants[i].setTourDistance(this.ants[i].calculateTourDistance());
+					this.ants[i].setTourMLU(this.ants[i].calculateTourMLU());
 
 					System.out.print("Generacion " + g + " |  Hormiga: " + i + " | Coste: "
 							+ this.ants[i].getTourLoad()+" |");
 					 this.ants[i].showTabu();
 					System.out.println();
 
-					if (this.ants[i].getTourLoad() == this.bestTourLoad) {// En caso de empate es la
+					if (this.ants[i].getTourMLU() == this.bestTourMLU) {// En caso de empate es la
 																			// distancia la que resuelve
 
-						if (this.ants[i].calculateTourDistance() < this.bestTourDistance) {
+						if (this.ants[i].calculateTourLoad() < this.bestTourLoad) {
 							assignBestTour(g, this.ants[i]);
 						}
 
 					}
 
-					if (this.ants[i].getTourLoad() < this.bestTourLoad) {
+					if (this.ants[i].getTourMLU() < this.bestTourMLU) {
 
 						assignBestTour(g, this.ants[i]);
 					}
@@ -350,11 +527,11 @@ public class ACO {
 					for (int j = 0; j < this.ants[i].getTabu().size() - 1; j++) {
 						this.ants[i].getDelta()[this.ants[i].getTabu().get(j).intValue()][this.ants[i]
 								.getTabu().get(j + 1)
-								.intValue()] = (double) (1.0 / this.ants[i].getTourLoad());// 1.0 es el
+								.intValue()] = (double) (1.0 / this.ants[i].getTourDistance());// 1.0 es el
 																							// total de
 																							// feromonas
 						this.ants[i].getDelta()[this.ants[i].getTabu().get(j + 1).intValue()][this.ants[i]
-								.getTabu().get(j).intValue()] = (double) (1.0 / this.ants[i].getTourLoad());
+								.getTabu().get(j).intValue()] = (double) (1.0 / this.ants[i].getTourDistance());
 					}
 					
 				}
@@ -432,7 +609,7 @@ public class ACO {
 		pintarMatriz(load);
 	}
 	
-	 public boolean existeEnlace (int i) {
+	 private boolean existeEnlace (int i) {
 		 
 		 if (this.adjacency[this.bestTour[i-1]][this.bestTour[i]]==1 && this.adjacency[this.bestTour[i]][this.bestTour[i-1]]==1 ) {
 			 return true;
@@ -485,7 +662,7 @@ public class ACO {
 
 	private void printOptimal(int destino) {
     	System.out.println("|-----------------------------|");
-         System.out.println("| The optimal length is: " + this.bestTourLoad+" |");
+         System.out.println("| The optimal MLU is: " + this.bestTourMLU+" |");
          System.out.println("|-----------------------------|");
          System.out.print("| The optimal tour is: ");
          for (int i = 0; i < this.bestTour.length; i++) {
@@ -523,9 +700,10 @@ public class ACO {
     }
     private void assignBestTour(int g,Ant ant) {
     	// Reserva el camino óptimo
+    	this.bestTourMLU=ant.getTourMLU();
 		this.bestTourLoad = ant.getTourLoad();
 		this.bestTourDistance=ant.getTourDistance();
-		 System.out.println("Generación "+g+" , descubre un camino mejor con coste: "+this.bestTourLoad);
+		 System.out.println("Generación "+g+" , descubre un camino mejor con MLU: "+this.bestTourMLU);
 		
 		for (int k = 0; k < ant.getTabu().size()-1; k++) {//Por alguna razon siempre tiene una casilla vacía más
 			

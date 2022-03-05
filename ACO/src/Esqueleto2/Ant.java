@@ -51,6 +51,8 @@ public class Ant implements Cloneable{
 
     private int tourLoad;// La carga del camino
 
+	private float tourMLU;
+
 	private int tourDistance; // La longitud del camino
 
     private int firstCity; // Ciudad de inicio
@@ -60,11 +62,14 @@ public class Ant implements Cloneable{
     public Ant(int cityNum) {
         this.cityNum = cityNum;
         this.tourLoad = 0;
+        this.tourDistance = 0;
+        this.tourMLU=0;
     }
 
     public Ant() {
         this.cityNum = 30;
-        this.tourLoad = 0;
+        this.tourDistance = 0;
+        this.tourMLU=0;
     }
 
     /**
@@ -128,7 +133,7 @@ public class Ant implements Cloneable{
      * 
      * 
      */
-    public int selectNextCity(double[][] pheromone) {
+    public int selectNextCity(double[][] pheromone,float trafico) {
         double[] p = new double[this.cityNum];// Probabilidad de transición
         double sum = 0.d;// Denominador de probabilidad de transición
        
@@ -136,8 +141,7 @@ public class Ant implements Cloneable{
         		if(distance[this.currentCity][city]!=9999) {//Calculo del sumatorio para ciudades adyacentes(modificacion)
              sum += Math.pow(pheromone[this.currentCity][city.intValue()],
                     this.alpha)*Math.pow(1.d/this.distance[this.currentCity][city.intValue()], this.beta)*Math.pow(1.d/this.load[this.currentCity][city.intValue()], this.beta);
-        		//IMPORTANTE he considerado que el exponente de la carga y la distancia es el mismo para dar la misma importancia
-                // a estos dos factores
+        		
         		}
         		
         		}
@@ -214,7 +218,7 @@ public class Ant implements Cloneable{
         Set<Integer> set = new HashSet<Integer>();
         
         for (int x=0; x<this.cityNum; x++) {
-        	if(p[x]!=0.0d&&load[this.currentCity][x]<this.capacity[this.currentCity][x]) {//Comprobamos que los enlaces no estan saturados 
+        	if(p[x]!=0.0d&&load[this.currentCity][x]+trafico<=this.capacity[this.currentCity][x]) {//Comprobamos que los enlaces no estan saturados con el trafico que mandamos
         		set.add(x);//Metemos las ciudades que tienen alguna probabilidad de transaccion en una bolsa
         	}
         }
@@ -284,6 +288,18 @@ public class Ant implements Cloneable{
             length += this.load[this.tabu.get(i).intValue()][this.tabu.get(i+1).intValue()];
         }
         return length;
+    }
+    
+    
+    public float calculateTourMLU() {
+    	  float mlu=Float.MAX_VALUE;
+    	 
+          for(int i = 0;i < this.tabu.size()-2;i++) {//ArrayList mete enetero al final sin valor
+              if( this.load[this.tabu.get(i).intValue()][this.tabu.get(i+1).intValue()]< mlu) {
+            	  mlu=this.load[this.tabu.get(i).intValue()][this.tabu.get(i+1).intValue()];
+              }
+          }
+          return mlu;
     }
     
     public int calculateTourDistance(){
@@ -362,6 +378,14 @@ public class Ant implements Cloneable{
     public void setCityNum(int cityNum) {
         this.cityNum = cityNum;
     }
+    
+    public float getTourMLU() {
+  		return tourMLU;
+  	}
+
+  	public void setTourMLU(float tourMLU) {
+  		this.tourMLU = tourMLU;
+  	}
 
     public int getTourLoad() {
         return tourLoad;
