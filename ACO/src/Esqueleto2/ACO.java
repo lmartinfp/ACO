@@ -298,8 +298,8 @@ public class ACO {
          loadStatistics("cargaDijkstra.csv");
          
          //Calculamos la carga mínima, media y máxima de los caminos
-         routingStatistics("enrutamiento.csv",fEnrutamiento);
-         routingStatistics("enrutamientoDijkstra.csv",fEnrutamientoDijkstra);
+         routingStatistics("enrutamiento.csv");
+         routingStatistics("enrutamientoDijkstra.csv");
             
          
     }
@@ -342,11 +342,12 @@ public class ACO {
 		
 	}
 
-	private void routingStatistics(String path, FileWriter flujoEscritura) {
+	private void routingStatistics(String path) throws IOException {
 		
-		float max=0;
+		int max=0;
 		float avg=0;
-		float min=Float.MAX_VALUE;
+		int min=Integer.MAX_VALUE;
+		int imin = 0,jmin = 0,imax = 0,jmax = 0;
 		float acu=0;
 		int i=0;
 		 BufferedReader bufferLectura = null;
@@ -356,18 +357,38 @@ public class ACO {
 		  
 		  // Leer una linea del archivo
 		  String linea = bufferLectura.readLine();
+		  linea = bufferLectura.readLine();
 		  
 		  while (linea != null) {
 		  
 		   String[] campos = linea.split(","); 
 		   
-		   //TODO completar con la lectura
+		   // completar con la lectura
+		   String[] ciudades= campos[2].split("->");
 		   
+		   if (ciudades.length>0) { //Comprobación de seguridad
+			   
+			   acu=acu+(ciudades.length-1);
+			   if (ciudades.length<=min) {
+				   min=ciudades.length-1;
+				   imin= Integer.parseInt(campos[0]);
+				   jmin=Integer.parseInt(campos[1]);
+			   }
+			   if (ciudades.length>=max) {
+				   max=ciudades.length-1;
+				   imax= Integer.parseInt(campos[0]);
+				   jmax=Integer.parseInt(campos[1]);
+			   }
+			   
+			   i++;
+		   }
+		 
 		   
 		   
 		   // Volver a leer otra línea del fichero
 		   linea = bufferLectura.readLine();
 		  }
+		
 		 } 
 		 catch (IOException e) {
 		  e.printStackTrace();
@@ -383,6 +404,26 @@ public class ACO {
 		   }
 		  }
 		 }
+		 
+		 avg=acu/i;
+		 
+	 FileWriter  flujoEscritura = new FileWriter(path,true);
+		 
+		 flujoEscritura.append("Nº máximo de saltos");
+		 flujoEscritura.append(",");
+		 flujoEscritura.append(String.valueOf(max));
+		 flujoEscritura.append("\n");
+		 flujoEscritura.append("Nº mínimo de saltos");
+		 flujoEscritura.append(",");
+		 flujoEscritura.append(String.valueOf(min));
+		 flujoEscritura.append("\n");
+		 flujoEscritura.append("Nº medio de saltos");
+		 flujoEscritura.append(",");
+		 flujoEscritura.append(String.valueOf(avg));
+		 flujoEscritura.append("\n");
+		 
+		 flujoEscritura.flush();
+		 flujoEscritura.close();
 		
 	}
 
