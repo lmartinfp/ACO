@@ -50,6 +50,7 @@ public class ACO {
     // Tres parámetros
     private double alpha; 
     private double beta;
+    private double gamma;
     private double rho;
 	private int[][] adjacency;
 	private Graph<Integer,DefaultEdge> graph;
@@ -64,7 +65,7 @@ public class ACO {
     /*
      * Constructor parametrizado
      */
-    public ACO(float [][] traffic,int[][]adjacency ,float[][]capacity,int antNum, int cityNum, int MAX_GEN, double alpha, double beta, double rho) {
+    public ACO(float [][] traffic,int[][]adjacency ,float[][]capacity,int antNum, int cityNum, int MAX_GEN, double alpha, double beta,double gamma, double rho) {
         this.traffic=traffic;
         this.adjacency =adjacency;
         this.capacity=capacity;
@@ -73,6 +74,7 @@ public class ACO {
         this.MAX_GEN = MAX_GEN;
         this.alpha = alpha;
         this.beta = beta;
+        this.gamma=gamma;
         this.rho = rho;
         this.ants = new Ant[this.antNum];
         this.graph= new SimpleDirectedWeightedGraph<>(DefaultEdge.class);
@@ -115,12 +117,16 @@ public class ACO {
                     this.distance[i][j] = tij;
                     this.distance[j][i] = tij;
                     
-                	//PONEMOS LA MATRIZ DE CARGA A 0 INICIALMENTE
-                	 this.load[i][j] = 0;
-                     this.load[j][i] = 0;
-                     
-                     this.loadDijkstra[i][j] = 0;
-                     this.loadDijkstra[j][i] = 0;
+                    
+                   
+                    	//PONEMOS LA MATRIZ DE CARGA A 0 INICIALMENTE
+                   	 this.load[i][j] = 0.1f;
+                        this.load[j][i] = 0.1f;
+                        
+                        this.loadDijkstra[i][j] = 0.1f;
+                        this.loadDijkstra[j][i] = 0.1f;
+                    
+                	
                 }
             }
             this.distance[this.cityNum-1][this.cityNum-1] = 0;
@@ -153,7 +159,7 @@ public class ACO {
             // Coloca las hormigas al azar  
             for(int i = 0;i < this.antNum;i++){  //Inicializamos el vector de hormigas= creamos las hormigas
                 this.ants[i]=new Ant(this.cityNum);  
-                this.ants[i].init(this.distance,this.load,this.capacity ,this.alpha, this.beta);  
+                this.ants[i].init(this.distance,this.load,this.capacity ,this.alpha, this.beta,this.gamma);  
             }  
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -214,39 +220,41 @@ public class ACO {
 			
 			for (int c = 0; c < this.traffic.length; c++) {
 				
-				
-				System.out.println("Iteracion: "+it+" | Origen(Fila): "+f+" | Destino (Columna): "+c);
-				
-				// Inicializa la longitud de la ruta óptima
-	            this.bestTourMLU=Float.MAX_VALUE;
-	          
-	            // Inicializar la ruta óptima
-	            this.bestTour=new int[this.cityNum];  
-//				completeFirstCity(f);
-	            for (int i = 0; i < this.antNum; i++) {
-					this.ants[i].reInit(this.distance, this.load, this.alpha, this.beta,f);
-				}
-	            
-	            //Reiniciar matriz feromonas
-				initPheromones();
-			   
-				if (f!=c) {//De este modo garantizamos las n*n-1 iteraciones (ahorramos la diagonal a 0)
-					
-					calculateDijkstraShortestPath(f, c,fEnrutamientoDijkstra);
-					
-					boolean callejonsinsalida=false;
-					
-					this.buildACOBestSolution(f,c,callejonsinsalida,this.traffic[f][c]);
-					
+				if (this.traffic[f][c]!=0) {
+					System.out.println("Iteracion: " + it + " | Origen(Fila): " + f + " | Destino (Columna): " + c);
 
-					// Cuando tenemos el mejor camino, entonces actualizamos matriz de carga
-					if(!callejonsinsalida) {
-					this.printOptimal(c);	
-					this.updateLoadMatrix(f,c,fEnrutamiento);
+					// Inicializa la longitud de la ruta óptima
+					this.bestTourMLU = Float.MAX_VALUE;
+
+					// Inicializar la ruta óptima
+					this.bestTour = new int[this.cityNum];
+//				completeFirstCity(f);
+					for (int i = 0; i < this.antNum; i++) {
+						this.ants[i].reInit(this.distance, this.load, this.alpha, this.beta,this.gamma, f);
 					}
-					
-					it++;
-			}
+
+					// Reiniciar matriz feromonas
+					initPheromones();
+
+					if (f != c) {// De este modo garantizamos las n*n-1 iteraciones (ahorramos la diagonal a 0)
+
+						calculateDijkstraShortestPath(f, c, fEnrutamientoDijkstra);
+
+						boolean callejonsinsalida = false;
+
+						this.buildACOBestSolution(f, c, callejonsinsalida, this.traffic[f][c]);
+
+						// Cuando tenemos el mejor camino, entonces actualizamos matriz de carga
+						if (!callejonsinsalida) {
+							this.printOptimal(c);
+							this.updateLoadMatrix(f, c, fEnrutamiento);
+						}
+
+						it++;
+					}
+
+				}
+				
 			}
 		} // Cierran la matriz de trafico
 
@@ -451,7 +459,7 @@ public class ACO {
 		   // Sepapar la linea leída con el separador definido previamente
 		   String[] campos = linea.split(","); 
 		   
-		   if (!campos[0].equals(campos[1])&&Float.parseFloat(campos[2])!=0.0) {
+		   if (!campos[0].equals(campos[1])&&Float.parseFloat(campos[2])>0.1f) {
 		   num = Float.parseFloat(campos[2])*100;
 		   den=edgeCapacity(Integer.parseInt(campos[0]),Integer.parseInt(campos[1]));
 		   
@@ -527,9 +535,9 @@ public class ACO {
 
 				callejonsinsalida = false;
 				while (this.ants[i].getCurrentCity() != c) {
-					// System.out.println("Construyendo solucion");
+					//System.out.println("Construyendo solucion");
 
-					if (this.ants[i].selectNextCity(this.pheromone,trafico) == 1) {
+					if (this.ants[i].selectNextCity2(this.pheromone,trafico) == 1) {
 						callejonsinsalida = true;
 						break;
 					} // Construye solucion
@@ -582,7 +590,7 @@ public class ACO {
 			this.updatePheromone();// Sistema de hormigas-ciclo
 			// Reinicializar la hormiga
 			for (int i = 0; i < this.antNum; i++) {
-				this.ants[i].reInit(this.distance, this.load, this.alpha, this.beta,f);
+				this.ants[i].reInit(this.distance, this.load, this.alpha, this.beta,this.gamma,f);
 			}
 
 		}
@@ -748,7 +756,7 @@ public class ACO {
 		
 		for (int k = 0; k < ant.getTabu().size()-1; k++) {//Por alguna razon siempre tiene una casilla vacía más
 			
-			this.bestTour[k] = ant.getTabu().get(k).intValue();// Mejor camino hasta el momento
+			this.bestTour[k] = ant.getTabu().get(k).intValue();// TODO: por que tabu viene con numeros repetidos??
 		}
     }
     

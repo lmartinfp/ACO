@@ -45,11 +45,13 @@ public class Ant implements Cloneable{
 
     private double beta;
     
+    private double gamma;
+    
 //    private int umbral; //capacidad máxima de tráfico
 
     private int cityNum;// Número de ciudades
 
-    private int tourLoad;// La carga del camino
+    private float tourLoad;// La carga del camino
 
 	private float tourMLU;
 
@@ -78,9 +80,10 @@ public class Ant implements Cloneable{
      * @param a
      * @param b
      */
-    public void init(int[][] distance,float[][]load,float capacities[][],double a,double b) {
+    public void init(int[][] distance,float[][]load,float capacities[][],double a,double b, double g) {
         this.alpha = a;
         this.beta = b;
+        this.gamma= g;
         this.distance = distance;
         this.capacity=capacities;
         this.load=load;
@@ -97,9 +100,10 @@ public class Ant implements Cloneable{
 		
     }
     
-    public void reInit(int[][] distance,float[][]load,double a,double b,int origen) {
+    public void reInit(int[][] distance,float[][]load,double a,double b,double g,int origen) {
         this.alpha = a;
         this.beta = b;
+        this.gamma=g;
         this.distance = distance;
         this.load=load;
         this.allowedCities = new ArrayList<Integer>();
@@ -138,9 +142,9 @@ public class Ant implements Cloneable{
         double sum = 0.d;// Denominador de probabilidad de transición
        
         	for (Integer city: this.allowedCities) {  
-        		if(distance[this.currentCity][city]!=9999) {//Calculo del sumatorio para ciudades adyacentes(modificacion)
+        		if(distance[this.currentCity][city]!=9999) {//Calculo del sumatorio para ciudades adyacentes
              sum += Math.pow(pheromone[this.currentCity][city.intValue()],
-                    this.alpha)*Math.pow(1.d/this.distance[this.currentCity][city.intValue()], this.beta)*Math.pow(1.d/this.load[this.currentCity][city.intValue()], this.beta);
+                    this.alpha)*Math.pow(1.d/this.distance[this.currentCity][city.intValue()], this.alpha)*Math.pow(1.d/this.load[this.currentCity][city.intValue()], this.beta);//TODO SE PRODUCE UNA DIVISION POR 0
         		
         		}
         		
@@ -271,21 +275,149 @@ public class Ant implements Cloneable{
 		return 0;
  
     }
-    
+    /**
+     * Elige la siguiente ciudad
+     * @param <E>
+     * @param  matriz de feromonas
+     * 
+     * Aplicar k shortestpath me devuelve los caminos y probar uno a uno para ver cual interesa  
+     * 
+     * 
+     */
+    public int selectNextCity2(double[][] pheromone,float trafico) {
+        double[] p = new double[this.cityNum];// Probabilidad de transición
+        double sum = 0.d;// Denominador de probabilidad de transición
+       
+        	for (Integer city: this.allowedCities) {  
+        		if(distance[this.currentCity][city]!=9999) {//Calculo del sumatorio para ciudades adyacentes(modificacion)
+        			
+        			
+             sum += Math.pow(pheromone[this.currentCity][city.intValue()],
+                    this.alpha)*Math.pow(1.d/this.distance[this.currentCity][city.intValue()], this.gamma)*Math.pow(1.d/this.load[this.currentCity][city.intValue()], this.beta);
+        		
+        		}
+        		
+        		}
+//        	System.out.println("Factor sumatorio:"+sum);
+        	
+        	
+         //Cambiar por formula de wuham formula 1 y quitamos los retardos. Me quedo con el siguiente nodo de k shortest path
+        //Tendremos que cargar de feromonas el camino con menor MLU (menor saturacion de carga)
+        
+//      double s = 0.d;
+        for (int i = 0; i < this.cityNum; i++) {
+            boolean flag = false;
+            for (Integer city : this.allowedCities) {
+                if(i == city.intValue() && distance[this.currentCity][city]!=9999) {// comprobar que es adyacente de la ciudad acutal(modificacion)
+                     
+//           			System.out.println("Factor feromonas:"+Math.pow(pheromone[this.currentCity][i], this.alpha));
+//           			System.out.println("Factor distancia:"+Math.pow(1.d/this.distance[this.currentCity][i], this.gamma));
+//           			System.out.println("Factor carga:"+Math.pow(1.d/this.load[this.currentCity][i], this.beta));
+                	
+                	p[i] = (double) ((Math.pow(pheromone[this.currentCity][i], 
+                             this.alpha)*Math.pow(1.d/this.distance[this.currentCity][i], this.gamma)*Math.pow(1.d/this.load[this.currentCity][i], this.beta))/sum);
+                     flag = true;
+                     break;
+                }
+            }
+            if(!flag)
+                p[i] = 0.d;//Las probabilidades que no se rellenan se ponen a 0
+//          s += p[i];
+        }
+//      if(Double.isNaN(s)) {
+//          for(int i =0;i < this.cityNum;i++) {
+//              System.out.println(p[i]);
+//          }
+//      }
 
+        /**
+          * Si la ciudad con la probabilidad más alta se selecciona directamente como la próxima ciudad cada vez, el algoritmo convergerá prematuramente.
+          * Al final de la búsqueda, solo puede obtener soluciones subóptimas, y el uso de la ruleta puede mejorar las capacidades de búsqueda global del algoritmo sin perder la búsqueda local.
+          * Así que aquí elige la ruleta para elegir la siguiente ciudad. Consulte "Inteligencia computacional" Tsinghua University Press
+         */
+        // La ruleta elige la siguiente ciudad
+        // revisar callejones sin salida
+        
+      
+        for (int x=0; x<this.cityNum; x++) {
+        	if(p[x]!=0.0d&&load[this.currentCity][x]+trafico>this.capacity[this.currentCity][x]) {//Comprobamos que los enlaces no estan saturados con el trafico que mandamos
+        		p[x]=0.0d;
+        	}
+        		
+        }
+        
+        
+        boolean callejonSinSalida=true;
+        for (int x=0; x<this.cityNum; x++) {
+        	if(p[x]!=0.0) {//Comprobamos que los enlaces no estan saturados con el trafico que mandamos
+        		callejonSinSalida=false;
+        		break;
+        	}
+        		
+        }
+        
+        
+        if(callejonSinSalida) {
+        	System.out.print("La hormiga ha entrado en un callejon sin salida ");
+  	        showTabu();
+  	        System.out.println();
+  	        
+        	return 1;	
+        }
+        
+        
+        double sumSelect = 0.d;
+        int selectCity = -1;
+      //  Random random = new Random(System.currentTimeMillis());
+        double selectP =0.0d;
+        
+        bucleExterno:
+        do {
+       // selectP= random.nextDouble();
+        	selectP= Math.random();
+        while(selectP == 0.f) {
+        //    selectP = random.nextDouble();
+        	selectP= Math.random();
+        	
+        	
+        }
+        for(int i = 0;i < this.cityNum;i++) {
+            sumSelect += p[i];
+            if(sumSelect >= selectP) {
+                selectCity = i;
+                
+                // No siempre vamos a obtener resultado
+                
+               // Elimina la ciudad seleccionada de las ciudades que permiten la selección
+                this.allowedCities.remove(Integer.valueOf(selectCity));
+               // Agrega una ciudad seleccionada a la tabla tabú
+                this.tabu.add(Integer.valueOf(selectCity));
+               // Cambia la ciudad actual a la ciudad seleccionada
+                this.currentCity = selectCity;
+                break bucleExterno;
+            }
+        }
+        }while(selectCity == -1);
+      
+     
+ 
+		return 0;
+ 
+    }
+   
     
 
     /**
      * Calcular la longitud del camino
      * @return
      */
-    public int calculateTourLoad() {
-        int length=0;
+    public float calculateTourLoad() {
+        float length=0;
 //      if(this.tabu.size() == 1) {
 //          return 0;
 //      }
         for(int i = 0;i < this.tabu.size()-2;i++) {//ArrayList mete enetero al final sin valor
-            length += this.load[this.tabu.get(i).intValue()][this.tabu.get(i+1).intValue()];
+            length =length+ this.load[this.tabu.get(i).intValue()][this.tabu.get(i+1).intValue()];
         }
         return length;
     }
@@ -315,7 +447,7 @@ public class Ant implements Cloneable{
     
     public void showTabu() {
     	
-    	 for (int i=0 ;i< this.tabu.size()-1;i++) {
+    	 for (int i=0 ;i< this.tabu.size();i++) {
 	        	System.out.print(" -> ");
 				System.out.print(this.tabu.get(i));
 				
@@ -387,11 +519,11 @@ public class Ant implements Cloneable{
   		this.tourMLU = tourMLU;
   	}
 
-    public int getTourLoad() {
+    public float getTourLoad() {
         return tourLoad;
     }
 
-    public void setTourLoad(int tourLength) {
+    public void setTourLoad(float tourLength) {
         this.tourLoad = tourLength;
     }
     public int getTourDistance() {
