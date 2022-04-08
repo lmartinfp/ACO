@@ -2,6 +2,7 @@ package Esqueleto2;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Scanner;
@@ -38,7 +39,7 @@ public class Test {
 		switch(opcion) {
 		case 1:
 		//  --------------------------------------------------TOPOLOGIA 1-------------------------------------------  
-//	                        
+	        network= "Topologia 1";               
 			capacity = floatMatrixCSV("capacities1.csv");
 			traffic = floatMatrixCSV("traffic1.csv");
 			adjacency = intMatrixCSV("adjacency1.csv");
@@ -72,11 +73,32 @@ public class Test {
 			return;	
 		
 		}
+		
+		//----------------------------------Numero hormigas--------------------------------------
+		
+		Scanner reader = new Scanner(System.in);
+		int nHormigas = 0;
 
+		System.out.println("Introduce el número de hormigas:");
+
+		do {			
+			nHormigas = reader.nextInt();
+		   
+		} while (nHormigas==0);
+		//----------------------------------Numero generaciones--------------------------------------
+		
+		
+				int nGen = 0;
+
+				System.out.println("Introduce el número de generaciones:");
+
+				do {			
+					nGen = reader.nextInt();
+				   
+				} while (nGen==0);
     	//---------------------------------------MENU----------------------------------------------
              
 		
-        Scanner reader = new Scanner(System.in);
    		System.out.println("Ejecutando: "+network);
 
    		
@@ -87,19 +109,74 @@ public class Test {
    		System.out.println("Matriz de tráfico: ");
    		pintarMatriz(traffic);
    		
-               
-        //Las tres matrices se utilizaran para el calculo de la matriz de carga, junto con la de distancias.          
-        ACO aco = new ACO(traffic,adjacency,capacity,100,adjacency.length, 10, 1.d, 5.d,0 ,0.5d);
-        aco.init("cities.txt");
+   		FileWriter  fresumen =  new FileWriter("./output/resumen.csv");
+   		fresumen.append("Topologia");
+   		fresumen.append(",");
+   		fresumen.append("Hormigas");
+   		fresumen.append(",");
+   		fresumen.append("Generaciones");
+    	fresumen.append(",");
+    	fresumen.append("MLU");
+    	fresumen.append(",");
+    	fresumen.append("MAXhops");
+    	fresumen.append("\n");
+    	FileWriter  fresumenDijkstra =  new FileWriter("./output/resumenDijkstra.csv");
+    	fresumenDijkstra.append("Topologia");
+    	fresumenDijkstra.append(",");
+    	fresumenDijkstra.append("Hormigas");
+    	fresumenDijkstra.append(",");
+    	fresumenDijkstra.append("Generaciones");
+    	fresumenDijkstra.append(",");
+    	fresumenDijkstra.append("MLU");
+    	fresumenDijkstra.append(",");
+    	fresumenDijkstra.append("MAXhops");
+    	fresumenDijkstra.append("\n");
+    	
+    	
+   
+    	fresumen.flush();
+    	fresumen.close();
+    	
+    	fresumenDijkstra.flush();
+    	fresumenDijkstra.close();
+          
+        //Las tres matrices se utilizaran para el calculo de la matriz de carga, junto con la de distancias. 
+        ACO aco = new ACO(traffic,adjacency,capacity,nHormigas,adjacency.length, nGen, 1.d, 5.d,0 ,0.5d);
         
         
-        try {
-			aco.solve();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+        for (int i = 0; i < 25; i++) {
+        	aco.init("cities.txt");
+            
+        	fresumen =  new FileWriter("./output/resumen.csv",true);
+        	fresumenDijkstra =  new FileWriter("./output/resumenDijkstra.csv",true);
+        	
+        	fresumen.append(network);
+        	fresumen.append(",");
+        	fresumen.append(String.valueOf(nHormigas));
+        	fresumen.append(",");
+        	fresumen.append(String.valueOf(nGen));
+        	fresumen.append(",");
+        	
+        	fresumenDijkstra.append(network);
+        	fresumenDijkstra.append(",");
+        	fresumenDijkstra.append(String.valueOf(nHormigas));
+        	fresumenDijkstra.append(",");
+        	fresumenDijkstra.append(String.valueOf(nGen));
+        	fresumenDijkstra.append(",");
+        	
+        	fresumen.flush();
+        	fresumen.close();
+        	
+        	fresumenDijkstra.flush();
+        	fresumenDijkstra.close();
+            try {
+    			aco.solve(i);
+    		} catch (IOException e) {
+    			e.printStackTrace();
+    		}
 		}
-		
+        
+      
 	}
 	   private static void pintarMatriz(int matriz[][]) {
 			for (int x=0; x < matriz.length; x++) {

@@ -144,7 +144,7 @@ public class Ant implements Cloneable{
         	for (Integer city: this.allowedCities) {  
         		if(distance[this.currentCity][city]!=9999) {//Calculo del sumatorio para ciudades adyacentes
              sum += Math.pow(pheromone[this.currentCity][city.intValue()],
-                    this.alpha)*Math.pow(1.d/this.distance[this.currentCity][city.intValue()], this.alpha)*Math.pow(1.d/this.load[this.currentCity][city.intValue()], this.beta);//TODO SE PRODUCE UNA DIVISION POR 0
+                    this.alpha)*Math.pow(1.d, this.alpha)*Math.pow(1.d/this.load[this.currentCity][city.intValue()], this.beta);//TODO SE PRODUCE UNA DIVISION POR 0
         		
         		}
         		
@@ -161,7 +161,7 @@ public class Ant implements Cloneable{
             for (Integer city : this.allowedCities) {
                 if(i == city.intValue() && distance[this.currentCity][city]!=9999) {// comprobar que es adyacente de la ciudad acutal(modificacion)
                      p[i] = (double) ((Math.pow(pheromone[this.currentCity][i], 
-                             this.alpha)*Math.pow(1.d/this.distance[this.currentCity][i], this.beta)*Math.pow(1.d/this.load[this.currentCity][i], this.beta))/sum);
+                             this.alpha)*Math.pow(1.d, this.beta)*Math.pow(1.d/this.load[this.currentCity][i], this.beta))/sum);
                      flag = true;
                      break;
                 }
@@ -298,7 +298,7 @@ public class Ant implements Cloneable{
         		}
         		
         		}
-//        	System.out.println("Factor sumatorio:"+sum);
+
         	
         	
          //Cambiar por formula de wuham formula 1 y quitamos los retardos. Me quedo con el siguiente nodo de k shortest path
@@ -310,12 +310,9 @@ public class Ant implements Cloneable{
             for (Integer city : this.allowedCities) {
                 if(i == city.intValue() && distance[this.currentCity][city]!=9999) {// comprobar que es adyacente de la ciudad acutal(modificacion)
                      
-//           			System.out.println("Factor feromonas:"+Math.pow(pheromone[this.currentCity][i], this.alpha));
-//           			System.out.println("Factor distancia:"+Math.pow(1.d/this.distance[this.currentCity][i], this.gamma));
-//           			System.out.println("Factor carga:"+Math.pow(1.d/this.load[this.currentCity][i], this.beta));
                 	
                 	p[i] = (double) ((Math.pow(pheromone[this.currentCity][i], 
-                             this.alpha)*Math.pow(1.d/this.distance[this.currentCity][i], this.gamma)*Math.pow(1.d/this.load[this.currentCity][i], this.beta))/sum);
+                             this.alpha)*Math.pow(1.d/this.distance[this.currentCity][city.intValue()], this.gamma)*Math.pow(1.d/this.load[this.currentCity][i], this.beta))/sum);
                      flag = true;
                      break;
                 }
@@ -336,11 +333,13 @@ public class Ant implements Cloneable{
           * Así que aquí elige la ruleta para elegir la siguiente ciudad. Consulte "Inteligencia computacional" Tsinghua University Press
          */
         // La ruleta elige la siguiente ciudad
-        // revisar callejones sin salida
-        
+      
+        if(this.currentCity==16) {
+        	System.out.println();
+        }
       
         for (int x=0; x<this.cityNum; x++) {
-        	if(p[x]!=0.0d&&load[this.currentCity][x]+trafico>this.capacity[this.currentCity][x]) {//Comprobamos que los enlaces no estan saturados con el trafico que mandamos
+        	if((p[x]>0.0d)&&((load[this.currentCity][x]+trafico)>this.capacity[this.currentCity][x])) {//Comprobamos que los enlaces no estan saturados con el trafico que mandamos
         		p[x]=0.0d;
         	}
         		
@@ -349,7 +348,7 @@ public class Ant implements Cloneable{
         
         boolean callejonSinSalida=true;
         for (int x=0; x<this.cityNum; x++) {
-        	if(p[x]!=0.0) {//Comprobamos que los enlaces no estan saturados con el trafico que mandamos
+        	if(p[x]!=0.0d) {//Comprobamos que los enlaces no estan saturados con el trafico que mandamos
         		callejonSinSalida=false;
         		break;
         	}
@@ -371,33 +370,28 @@ public class Ant implements Cloneable{
       //  Random random = new Random(System.currentTimeMillis());
         double selectP =0.0d;
         
-        bucleExterno:
-        do {
-       // selectP= random.nextDouble();
-        	selectP= Math.random();
-        while(selectP == 0.f) {
-        //    selectP = random.nextDouble();
-        	selectP= Math.random();
-        	
-        	
-        }
-        for(int i = 0;i < this.cityNum;i++) {
-            sumSelect += p[i];
-            if(sumSelect >= selectP) {
-                selectCity = i;
-                
-                // No siempre vamos a obtener resultado
-                
-               // Elimina la ciudad seleccionada de las ciudades que permiten la selección
-                this.allowedCities.remove(Integer.valueOf(selectCity));
-               // Agrega una ciudad seleccionada a la tabla tabú
-                this.tabu.add(Integer.valueOf(selectCity));
-               // Cambia la ciudad actual a la ciudad seleccionada
-                this.currentCity = selectCity;
-                break bucleExterno;
-            }
-        }
-        }while(selectCity == -1);
+		bucleExterno: do {
+			// selectP= random.nextDouble();
+			do {
+				selectP = Math.random();
+			} while (selectP == 0.0d);
+			// selectP = random.nextDouble();
+
+			for (int i = 0; i < this.cityNum; i++) {
+				sumSelect += p[i];
+				if ((sumSelect >= selectP)&&(!this.tabu.contains(i)) && (this.capacity[this.currentCity][i]>(load[this.currentCity][i]+trafico))) {
+					selectCity = i;
+
+					// Elimina la ciudad seleccionada de las ciudades que permiten la selección
+					this.allowedCities.remove(Integer.valueOf(selectCity));
+					// Agrega una ciudad seleccionada a la tabla tabú
+					this.tabu.add(Integer.valueOf(selectCity));
+					// Cambia la ciudad actual a la ciudad seleccionada
+					this.currentCity = selectCity;
+					break bucleExterno;
+				}
+			}
+		} while (selectCity == -1);
       
      
  
@@ -447,7 +441,7 @@ public class Ant implements Cloneable{
     
     public void showTabu() {
     	
-    	 for (int i=0 ;i< this.tabu.size();i++) {
+    	 for (int i=0 ;i< this.tabu.size()-1;i++) {
 	        	System.out.print(" -> ");
 				System.out.print(this.tabu.get(i));
 				
