@@ -5,6 +5,8 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Scanner;
 
 
@@ -139,12 +141,45 @@ public class Test {
     	
     	fresumenDijkstra.flush();
     	fresumenDijkstra.close();
+    	
+    	//---------------- Ordenamos la matriz de trafico-------------------
+    	//Volcamos toda la matriz en otra que contenga src,dst y vol
+    	
+    	float sortedMT [][] = new float [adjacency.length*adjacency.length][3];
+    	
+    	int sortedIndex=0;
+    	for (int i = 0; i < traffic.length; i++) {
+			for (int j = 0; j < traffic.length; j++) {
+				if (i==j) {
+					sortedMT[sortedIndex][0]=i;
+					sortedMT[sortedIndex][1]=j;
+					sortedMT[sortedIndex][2]=0;
+				}
+				else {
+					sortedMT[sortedIndex][0]=i;
+					sortedMT[sortedIndex][1]=j;
+					sortedMT[sortedIndex][2]=traffic[i][j];
+				}
+				
+				sortedIndex++;
+			}
+		}
+
+    	Arrays.sort(sortedMT, (b, a) -> Float.compare(a[2], b[2]));
+//    	
+//    	for (int f = 0; f < sortedMT.length; f++) {
+//			System.out.println(sortedMT[f][0]+" "+sortedMT[f][1]+" "+sortedMT[f][2]);
+//		}
+    	//------------------------------------------------------------------
+    	
+    	
+    	
           
         //Las tres matrices se utilizaran para el calculo de la matriz de carga, junto con la de distancias. 
-        ACO aco = new ACO(traffic,adjacency,capacity,nHormigas,adjacency.length, nGen, 1.d, 5.d,0 ,0.5d);
+        ACO aco = new ACO(sortedMT,traffic,adjacency,capacity,nHormigas,adjacency.length, nGen, 1.d, 5.d,0 ,0.5d);
         
         
-        for (int i = 0; i < 25; i++) {
+        for (int i = 0; i < 100; i++) {
         	aco.init("cities.txt");
             
         	fresumen =  new FileWriter("./output/resumen.csv",true);

@@ -44,6 +44,7 @@ public class ACO {
 	private float[][] load; // carga de trafico que tiene un nodo en un momento dado
 	private float[][] loadDijkstra; // carga de trafico que tiene un nodo en un momento dado
 	private float[][] traffic;
+	private float[][] sortedMT;
 	private float[][] capacity;
 	private double bestTourLoad; // Carga camino mas optimo
 	private double bestTourDistance; // Longitud camino mas óptimo
@@ -68,8 +69,10 @@ public class ACO {
 	/*
 	 * Constructor parametrizado
 	 */
-	public ACO(float[][] traffic, int[][] adjacency, float[][] capacity, int antNum, int cityNum, int MAX_GEN,
+	public ACO(float[][] sortedMT,float[][] traffic, int[][] adjacency, float[][] capacity, int antNum, int cityNum, int MAX_GEN,
 			double alpha, double beta, double gamma, double rho) {
+		
+		this.sortedMT=sortedMT;
 		this.traffic = traffic;
 		this.adjacency = adjacency;
 		this.capacity = capacity;
@@ -210,13 +213,14 @@ public class ACO {
 		String fecha = format.format(fechaEntrada);
 		System.out.println(fecha);
 
+
 		int it = 0;
-		for (int f = 0; f < this.traffic.length; f++) {// Recorremos la matriz de trafico
+		for (int f = 0; f < this.sortedMT.length; f++) {// Recorremos la matriz de trafico
 
-			for (int c = 0; c < this.traffic.length; c++) {
+		//	for (int c = 0; c < this.traffic.length; c++) {
 
-				if (this.traffic[f][c] != 0) {
-					System.out.println("Iteracion: " + it + " | Origen(Fila): " + f + " | Destino (Columna): " + c);
+				if (this.sortedMT[f][2] != 0) {
+					System.out.println("Iteracion: " + it + " | Origen(Fila): " + this.sortedMT[f][0] + " | Destino (Columna): " + this.sortedMT[f][1]);
 
 					// Inicializa la longitud de la ruta óptima
 					this.bestTourMLU = Float.MAX_VALUE;
@@ -225,24 +229,24 @@ public class ACO {
 					this.bestTour = new int[this.cityNum];
 //				completeFirstCity(f);
 					for (int i = 0; i < this.antNum; i++) {
-						this.ants[i].reInit(this.distance, this.load, this.alpha, this.beta, this.gamma, f);
+						this.ants[i].reInit(this.distance, this.load, this.alpha, this.beta, this.gamma, (int)this.sortedMT[f][0]);
 					}
 
 					// Reiniciar matriz feromonas
 					initPheromones();
 
-					if (f != c) {// De este modo garantizamos las n*n-1 iteraciones (ahorramos la diagonal a 0)
+					if (this.sortedMT[f][0] != this.sortedMT[f][1]) {// De este modo garantizamos las n*n-1 iteraciones (ahorramos la diagonal a 0)
 
-						calculateDijkstraShortestPath(f, c, fEnrutamientoDijkstra);
+						calculateDijkstraShortestPath((int)this.sortedMT[f][0],(int)this.sortedMT[f][1], fEnrutamientoDijkstra);
 
 						boolean callejonsinsalida = false;
 
-						this.buildACOBestSolution(f, c, callejonsinsalida, this.traffic[f][c]);
+						this.buildACOBestSolution((int)this.sortedMT[f][0],(int)this.sortedMT[f][1], callejonsinsalida, this.sortedMT[f][2]);
 
 						// Cuando tenemos el mejor camino, entonces actualizamos matriz de carga
 						if (!callejonsinsalida) {
-							this.printOptimal(c);
-							this.updateLoadMatrix(f, c, fEnrutamiento);
+							this.printOptimal((int)this.sortedMT[f][1]);
+							this.updateLoadMatrix((int)this.sortedMT[f][0],(int)this.sortedMT[f][1], fEnrutamiento);
 							checkLoadMatrix();
 						}
 
@@ -251,7 +255,7 @@ public class ACO {
 
 				}
 
-			}
+			//}
 		} // Cierran la matriz de trafico
 
 		// escribe en un fichero la carga de cada enlace
@@ -289,21 +293,23 @@ public class ACO {
 
 	}
 
-	private void checkLoadMatrix() {
+	private boolean checkLoadMatrix() throws IOException {
+		boolean validate=true;
 		for (int i = 0; i < this.load.length; i++) {
 			for (int j = 0; j < this.load.length; j++) {
-				if (this.capacity[i][j] != 0 && this.load[i][j] > this.capacity[i][j]) {
+				if (this.capacity[i][j] != 0 && this.load[i][j] > this.capacity[i][j]) { //Detectamos saturacion
 					System.out.println("carga[" + i + "," + j + "]:" + this.load[i][j]);
 					System.out.println("capacity[" + i + "," + j + "]:" + this.capacity[i][j]);
 					for (int n : this.bestTour) {
 						System.out.print("->" + n);
 					}
+				
 					System.out.println();
 					System.exit(0);
 				}
 			}
 		}
-
+     return validate;
 	}
 
 	private void finalizeCostMatrix() {
@@ -531,23 +537,18 @@ public class ACO {
 
 			for (int i = 0; i < this.antNum; i++) {
 
-				if (f==1) {
+				if (f==16) {
 					System.out.println();
 				}
 				callejonsinsalida = false;
 				while (this.ants[i].getCurrentCity() != c) {
-					if (c==5) {
-					 System.out.println("Construyendo solucion");
-					}
+					
 					if (this.ants[i].selectNextCity2(this.pheromone, trafico) == 1) {
 						callejonsinsalida = true;
 						break;
 					} // Construye solucion
 
 				}
-//				if (checkSaturation(this.ants[i], trafico)) {
-//					callejonsinsalida = true;
-//				}
 
 				if (!callejonsinsalida) {
 					this.ants[i].getTabu().add(this.ants[i].getFirstCity());
@@ -602,20 +603,20 @@ public class ACO {
 
 	}
 
-	private boolean checkSaturation(Ant a, float trafico) {
-		boolean saturation = false; // Partimos de la premisa que todo funciona bien
+	private boolean checkSaturation(List <Integer> list, float trafico) {
+		boolean validate = true; // Partimos de la premisa que todo funciona bien
 
-		for (int i = 1; i < a.getTabu().size(); i++) {
-			if (this.load[a.getTabu().get(i - 1)][a.getTabu().get(i)]
-					+ trafico > this.capacity[a.getTabu().get(i - 1)][a.getTabu().get(i)]) {
+		for (int i = 1; i < list.size(); i++) {
+			if (this.load[list.get(i - 1)][list.get(i)]
+					+ trafico > this.capacity[list.get(i - 1)][list.get(i)]) {
 				// System.out.println((this.load[a.getTabu().get(i-1)][a.getTabu().get(i)]+trafico)+"
 				// es mayor que ["+a.getTabu().get(i-1)+","+i+"]"+
 				// this.capacity[a.getTabu().get(i-1)][a.getTabu().get(i)] );
-				saturation = true;
+				validate = false;
 			}
 		}
 
-		return saturation;
+		return validate;
 	}
 
 	private void completeFirstCity(int origen) {
@@ -674,7 +675,7 @@ public class ACO {
 		}
 		
 		if (sinSol) {
-			dijkstraKShortestPath(origen, dst);
+			dijkstraKShortestPath(origen, dst,acu);
 		}
 
 
@@ -816,7 +817,7 @@ public class ACO {
 	
 	
 	
-	public void dijkstraKShortestPath(int origen, int destino)
+	public void dijkstraKShortestPath(int origen, int destino, float trafico)
 			throws IOException {
 
 		int numPaths=3;
@@ -824,7 +825,7 @@ public class ACO {
 		YenKShortestPath<Integer, DefaultEdge> shortestpath= new YenKShortestPath<>(this.topologia);
 
 		List<GraphPath<Integer,DefaultEdge>> rutas = shortestpath.getPaths(origen, destino, numPaths);
-		//TODO encontrar el mejor camino en función de la mlu es decir la más baja
+		// Encontrar el mejor camino en función de la mlu es decir la más baja
 
 		
 		
@@ -842,7 +843,7 @@ public class ACO {
 		    
 			mlu=calculateTourMLU(vertex);
 			
-			if (bestMLU>mlu) {//Nos interesa la mlu mas baja
+			if (bestMLU>mlu&&checkSaturation(vertex, trafico)) {// Nos interesa la mlu mas baja y comprobamos que no saturamos ninguno de los enlaces
 				bestMLU=mlu;
 				bestPath=vertex;
 			}
